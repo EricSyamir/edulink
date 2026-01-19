@@ -16,7 +16,7 @@ from app.schemas.discipline import (
     DisciplineRecordResponse,
     DisciplineRecordWithDetails,
 )
-# Authentication removed - no get_current_teacher needed
+from app.services.auth import get_current_teacher
 from app.services.discipline import discipline_service
 
 router = APIRouter(prefix="/api/discipline-records", tags=["Discipline"])
@@ -45,6 +45,7 @@ def list_discipline_records(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(50, ge=1, le=100, description="Maximum records to return"),
     db: Session = Depends(get_db),
+    teacher: Teacher = Depends(get_current_teacher)
 ):
     """
     List discipline records with optional filtering.
@@ -80,6 +81,7 @@ def get_student_discipline_history(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
+    teacher: Teacher = Depends(get_current_teacher)
 ):
     """
     Get discipline history for a specific student.
@@ -105,6 +107,7 @@ def get_student_discipline_history(
 def get_discipline_record(
     record_id: int,
     db: Session = Depends(get_db),
+    teacher: Teacher = Depends(get_current_teacher)
 ):
     """
     Get a specific discipline record by ID.
@@ -124,6 +127,7 @@ def get_discipline_record(
 def create_discipline_record(
     record_data: DisciplineRecordCreate,
     db: Session = Depends(get_db),
+    teacher: Teacher = Depends(get_current_teacher)
 ):
     """
     Create a new discipline record (reward or punishment).
@@ -174,6 +178,7 @@ def create_discipline_record(
 def delete_discipline_record(
     record_id: int,
     db: Session = Depends(get_db),
+    teacher: Teacher = Depends(get_current_teacher)
 ):
     """
     Delete a discipline record.

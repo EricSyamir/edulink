@@ -23,8 +23,30 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false, // No cookies/sessions needed - using localStorage instead
+  withCredentials: false, // No cookies/sessions needed
 })
+
+// Request interceptor - add Authorization header from localStorage
+api.interceptors.request.use(
+  (config) => {
+    // Get teacher ID from localStorage and add to Authorization header
+    const teacherData = localStorage.getItem('edulink_teacher')
+    if (teacherData) {
+      try {
+        const teacher = JSON.parse(teacherData)
+        if (teacher.id) {
+          config.headers.Authorization = String(teacher.id)
+        }
+      } catch (e) {
+        // Invalid JSON, ignore
+      }
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
 
 // Response interceptor - handle common errors
 api.interceptors.response.use(

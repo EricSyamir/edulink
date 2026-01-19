@@ -18,7 +18,7 @@ from app.schemas.student import (
     StudentWithPoints,
     StudentIdentifyResponse,
 )
-# Authentication removed - no get_current_teacher needed
+from app.services.auth import get_current_teacher
 from app.services.face_recognition import face_recognition_service
 from app.services.discipline import discipline_service
 from app.config import settings

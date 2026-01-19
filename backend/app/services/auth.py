@@ -1,19 +1,15 @@
 """
-Authentication Service
-Handles teacher authentication and authorization using sessions.
+Authentication Service - Simple header-based auth (no cookies/sessions)
 """
 
 from typing import Optional
 from sqlalchemy.orm import Session
-from fastapi import HTTPException, status, Depends, Request
+from fastapi import HTTPException, status, Depends, Request, Header
 from loguru import logger
 
 from app.models import Teacher
 from app.utils.security import verify_password
 from app.database import get_db
-
-# Session key for storing teacher ID
-SESSION_KEY_TEACHER_ID = "teacher_id"
 
 
 class AuthService:
@@ -46,79 +42,63 @@ class AuthService:
         return teacher
     
     @staticmethod
-    def set_session(request: Request, teacher_id: int):
+    def get_teacher_from_token(teacher_id: str, db: Session) -> Teacher:
         """
-        Set teacher ID in session.
+        Get teacher from teacher ID token (simple header-based auth).
         
         Args:
-            request: FastAPI request object
-            teacher_id: Teacher's database ID
-        """
-        request.session[SESSION_KEY_TEACHER_ID] = teacher_id
-        logger.debug(f"Session set for teacher_id: {teacher_id}")
-    
-    @staticmethod
-    def clear_session(request: Request):
-        """
-        Clear session data.
-        
-        Args:
-            request: FastAPI request object
-        """
-        request.session.clear()
-        logger.debug("Session cleared")
-    
-    @staticmethod
-    def get_current_teacher_from_session(request: Request, db: Session) -> Teacher:
-        """
-        Get current teacher from session.
-        
-        Args:
-            request: FastAPI request object
+            teacher_id: Teacher ID from Authorization header
             db: Database session
         
         Returns:
             Teacher object
         
         Raises:
-            HTTPException: If session is invalid or teacher not found
+            HTTPException: If teacher not found
         """
-        teacher_id = request.session.get(SESSION_KEY_TEACHER_ID)
-        
-        if teacher_id is None:
+        try:
+            teacher_id_int = int(teacher_id)
+        except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Not authenticated",
+                detail="Invalid authentication token",
             )
         
-        teacher = db.query(Teacher).filter(Teacher.id == int(teacher_id)).first()
+        teacher = db.query(Teacher).filter(Teacher.id == teacher_id_int).first()
         
         if teacher is None:
-            # Invalid session, clear it
-            AuthService.clear_session(request)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid session",
+                detail="Invalid authentication token",
             )
         
         return teacher
 
 
-# Dependency function for protected routes
+# Dependency function for protected routes - reads teacher ID from Authorization header
 async def get_current_teacher(
-    request: Request,
+    authorization: Optional[str] = Header(None, alias="Authorization"),
     db: Session = Depends(get_db)
 ) -> Teacher:
     """
-    FastAPI dependency to get current authenticated teacher from session.
-    Use this in route dependencies to protect endpoints.
+    FastAPI dependency to get current authenticated teacher from Authorization header.
+    Simple header-based auth: send "Authorization: <teacher_id>" header.
     
     Usage:
         @router.get("/protected")
         def protected_route(teacher: Teacher = Depends(get_current_teacher)):
             return {"teacher": teacher.name}
     """
-    return AuthService.get_current_teacher_from_session(request, db)
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated - Authorization header required",
+        )
+    
+    # Remove "Bearer " prefix if present, otherwise use as-is
+    teacher_id = authorization.replace("Bearer ", "").strip()
+    
+    return AuthService.get_teacher_from_token(teacher_id, db)
 
 
 # Global service instance

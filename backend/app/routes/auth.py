@@ -8,7 +8,8 @@ from loguru import logger
 
 from app.database import get_db
 from app.schemas.auth import LoginRequest
-from app.services.auth import AuthService
+from app.services.auth import AuthService, get_current_teacher
+from app.models import Teacher
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -19,8 +20,8 @@ def login(
     db: Session = Depends(get_db)
 ):
     """
-    Basic login - just checks credentials and returns teacher data.
-    No cookies, no sessions, no authentication checks after this.
+    Basic login - checks credentials and returns teacher data + teacher ID for auth header.
+    Frontend should send teacher ID in Authorization header for protected routes.
     """
     teacher = AuthService.authenticate_teacher(db, login_data.email, login_data.password)
     
@@ -39,21 +40,22 @@ def login(
             "teacher_id": teacher.teacher_id,
             "name": teacher.name,
             "email": teacher.email
-        }
+        },
+        "token": str(teacher.id)  # Simple token = teacher ID (send in Authorization header)
     }
 
 
 @router.get("/me")
-def get_current_user():
+def get_current_user(teacher: Teacher = Depends(get_current_teacher)):
     """
-    Get current user - no authentication, returns dummy data.
-    Frontend can store teacher data in localStorage after login.
+    Get current authenticated teacher's information.
+    Requires Authorization header with teacher ID.
     """
     return {
-        "id": 1,
-        "teacher_id": "T000001",
-        "name": "Logged In User",
-        "email": "user@edulink.com"
+        "id": teacher.id,
+        "teacher_id": teacher.teacher_id,
+        "name": teacher.name,
+        "email": teacher.email
     }
 
 

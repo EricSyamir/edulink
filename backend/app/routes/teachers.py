@@ -11,7 +11,7 @@ from loguru import logger
 from app.database import get_db
 from app.models import Teacher
 from app.schemas.teacher import TeacherCreate, TeacherUpdate, TeacherResponse
-# Authentication removed - no get_current_teacher needed
+from app.services.auth import get_current_teacher
 from app.utils.security import get_password_hash
 
 router = APIRouter(prefix="/api/teachers", tags=["Teachers"])
@@ -22,6 +22,7 @@ def list_teachers(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(50, ge=1, le=100, description="Maximum records to return"),
     db: Session = Depends(get_db),
+    current_teacher: Teacher = Depends(get_current_teacher)
 ):
     """
     List all teachers.
@@ -36,6 +37,7 @@ def list_teachers(
 def get_teacher(
     teacher_id: int,
     db: Session = Depends(get_db),
+    current_teacher: Teacher = Depends(get_current_teacher)
 ):
     """
     Get a specific teacher by database ID.
@@ -55,6 +57,7 @@ def get_teacher(
 def create_teacher(
     teacher_data: TeacherCreate,
     db: Session = Depends(get_db),
+    current_teacher: Teacher = Depends(get_current_teacher)
 ):
     """
     Create a new teacher account.
@@ -106,6 +109,7 @@ def update_teacher(
     teacher_id: int,
     teacher_data: TeacherUpdate,
     db: Session = Depends(get_db),
+    current_teacher: Teacher = Depends(get_current_teacher)
 ):
     """
     Update an existing teacher.
@@ -164,6 +168,7 @@ def update_teacher(
 def delete_teacher(
     teacher_id: int,
     db: Session = Depends(get_db),
+    current_teacher: Teacher = Depends(get_current_teacher)
 ):
     """
     Delete a teacher account.
