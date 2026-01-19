@@ -4,6 +4,7 @@ Handles teacher login and session management.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from loguru import logger
 
@@ -45,15 +46,24 @@ def login(
     # Log session details for debugging
     logger.info(f"Session set for teacher_id: {teacher.id}, session keys: {list(request.session.keys())}")
     
-    return {
-        "message": "Login successful",
-        "teacher": {
-            "id": teacher.id,
-            "teacher_id": teacher.teacher_id,
-            "name": teacher.name,
-            "email": teacher.email
+    # Ensure session is saved by accessing it (forces Starlette to serialize)
+    # This ensures the cookie is set in the response
+    session_data = dict(request.session)
+    logger.debug(f"Session data to be serialized: {session_data}")
+    
+    # Return JSON response - SessionMiddleware will add the cookie header
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={
+            "message": "Login successful",
+            "teacher": {
+                "id": teacher.id,
+                "teacher_id": teacher.teacher_id,
+                "name": teacher.name,
+                "email": teacher.email
+            }
         }
-    }
+    )
 
 
 @router.get("/me")

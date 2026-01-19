@@ -12,6 +12,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from loguru import logger
 import sys
+from typing import Callable
 
 from app.config import settings
 from app.database import init_db
@@ -106,6 +107,20 @@ app.add_middleware(
     same_site="none" if not settings.DEBUG else "lax",  # "none" for cross-origin, requires HTTPS
     https_only=not settings.DEBUG,  # Only HTTPS in production (required for SameSite=None)
 )
+
+# Debug middleware to log cookie headers (runs after SessionMiddleware)
+# Middleware executes in reverse order, so this runs AFTER SessionMiddleware
+class CookieDebugMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next: Callable):
+        response = await call_next(request)
+        # Log Set-Cookie headers for debugging (especially for login endpoint)
+        set_cookie_headers = response.headers.getlist("set-cookie")
+        if set_cookie_headers and "/api/auth/login" in str(request.url):
+            logger.info(f"🔐 Login response Set-Cookie headers: {set_cookie_headers}")
+        return response
+
+# Add debug middleware AFTER SessionMiddleware (so it can see the cookies)
+app.add_middleware(CookieDebugMiddleware)
 
 # Include routers
 app.include_router(setup_router)  # Setup routes (no auth required)
