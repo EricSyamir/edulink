@@ -33,7 +33,17 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Clear auth data on unauthorized
       localStorage.removeItem('edulink_teacher')
-      window.location.href = '/login'
+      
+      // Don't redirect if:
+      // 1. We're already on the login page (prevents infinite redirect loop)
+      // 2. The request was to /api/auth/me (this is expected to fail when not logged in)
+      const isLoginPage = window.location.pathname === '/login'
+      const isAuthCheck = error.config?.url?.includes('/api/auth/me')
+      
+      if (!isLoginPage && !isAuthCheck) {
+        // Only redirect if we're not on login page and it's not an auth check
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }

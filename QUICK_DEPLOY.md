@@ -47,13 +47,19 @@
    DATABASE_URL=postgresql+psycopg2://postgres.stkxcgpvzjpkblihoshz:Edulink1010#@aws-1-ap-south-1.pooler.supabase.com:6543/postgres
    
    SESSION_SECRET_KEY=Edulink1010#
-   CORS_ORIGINS=https://edulink.vercel.app
+   # CORS: Use your ACTUAL Vercel frontend URL (you'll get this after deploying frontend)
+   # For now, use a placeholder - you MUST update this after Step 3!
+   CORS_ORIGINS=https://edulink-my.vercel.app
+   # CRITICAL: Set DEBUG=False for production (required for cross-origin cookies)
+   DEBUG=False
    ```
    
    **IMPORTANT**: 
    - Use the **Transaction pooler** (port 6543), NOT the direct connection (port 5432)
    - The pooler uses IPv4 which is compatible with Render's network
    - Direct connection uses IPv6 which Render doesn't support
+   - **CORS_ORIGINS**: Update this with your **actual** Vercel URL after deploying frontend (Step 3)
+   - **DEBUG=False**: Required in production for cross-origin cookie support (SameSite=None)
 6. Click **Create** → Wait ~5 minutes
 7. Copy your backend URL (e.g., `https://edulink-api.onrender.com`)
 
@@ -123,7 +129,19 @@ Use **one** of these methods (any long random string is fine):
    ⚠️ **If you forget this, the frontend will show a white page!**
    
 6. Click **Deploy** → Wait ~2 minutes
-7. Copy your frontend URL (e.g., `https://edulink.vercel.app`)
+7. Copy your frontend URL (e.g., `https://edulink-my.vercel.app`)
+
+**⚠️ CRITICAL: Update CORS in Render!**
+
+After getting your Vercel URL, you **MUST** update CORS in Render:
+1. Go to Render → Your backend service → **Environment** tab
+2. Update `CORS_ORIGINS` to your **exact** Vercel URL:
+   ```
+   CORS_ORIGINS=https://edulink-my.vercel.app
+   ```
+   (Replace with your actual Vercel URL - check it matches exactly!)
+3. Click **Save Changes** → Wait for redeploy (~2 minutes)
+4. **Without this, you'll get CORS errors and login won't work!**
 
 **Troubleshooting White Page:**
 - Open browser console (F12) and check for errors
@@ -131,12 +149,30 @@ Use **one** of these methods (any long random string is fine):
 - Check that the backend URL is accessible (try opening it in browser)
 - Look for CORS errors in console
 
-### Update CORS
+### Update CORS (CRITICAL - Fix CORS Errors!)
 
-1. Go back to Render → Your backend service
-2. Edit Environment Variables
-3. Update `CORS_ORIGINS` with your Vercel URL
-4. Save → Auto-redeploys
+**If you see CORS errors in the browser console, follow these steps:**
+
+1. Go to Render → Your backend service (`edulink-api`)
+2. Click **Environment** tab
+3. Find the `CORS_ORIGINS` variable
+4. Update it to include your **exact** Vercel frontend URL:
+   ```
+   CORS_ORIGINS=https://edulink-my.vercel.app
+   ```
+   **Important:** 
+   - Use your **actual** Vercel URL (check your Vercel dashboard)
+   - No trailing slash
+   - If you have multiple origins, separate with commas: `https://edulink-my.vercel.app,https://edulink.vercel.app`
+5. Click **Save Changes** → Render will auto-redeploy (~2 minutes)
+6. Wait for deployment to complete, then refresh your frontend
+
+**Common CORS Error:**
+```
+Access to XMLHttpRequest blocked by CORS policy: 
+No 'Access-Control-Allow-Origin' header is present
+```
+**Solution:** Make sure `CORS_ORIGINS` exactly matches your Vercel URL (including `https://`)
 
 ---
 
@@ -176,6 +212,14 @@ Use **one** of these methods (any long random string is fine):
 - Verify connection string format
 - Check database is accessible
 - Run `init_cloud_db.py` script
+
+### 401 Unauthorized errors / Login not working?
+- **Check `DEBUG=False`** is set in Render environment variables (required for cross-origin cookies)
+- Verify `CORS_ORIGINS` includes your exact Vercel URL
+- Clear browser cookies and try again
+- Check browser console for cookie-related errors
+- Ensure both frontend and backend are using HTTPS (required for SameSite=None cookies)
+- Try logging in again after clearing cookies
 
 ---
 

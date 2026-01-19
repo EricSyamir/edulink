@@ -89,12 +89,15 @@ app.add_middleware(
 )
 
 # Configure Session Middleware (after CORS)
+# Use same_site="none" for cross-origin cookie support (requires HTTPS)
+# In production (HTTPS), use "none" to allow cross-origin cookies
+# In development (HTTP), use "lax" since "none" requires Secure flag
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.SESSION_SECRET_KEY,
     max_age=settings.SESSION_MAX_AGE,
-    same_site="lax",
-    https_only=not settings.DEBUG,  # Only HTTPS in production
+    same_site="none" if not settings.DEBUG else "lax",  # "none" for cross-origin, requires HTTPS
+    https_only=not settings.DEBUG,  # Only HTTPS in production (required for SameSite=None)
 )
 
 # Include routers
