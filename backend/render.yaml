@@ -1,0 +1,32 @@
+# Render.com deployment configuration
+# Deploy this file to Render.com dashboard or use Render CLI
+
+services:
+  - type: web
+    name: edulink-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false  # Set this in Render dashboard
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: JWT_EXPIRATION_HOURS
+        value: 24
+      - key: FACE_SIMILARITY_THRESHOLD
+        value: 0.5
+      - key: FACE_MODEL_NAME
+        value: buffalo_l
+      - key: DEFAULT_REWARD_POINTS
+        value: 10
+      - key: DEFAULT_PUNISHMENT_POINTS
+        value: -10
+      - key: INITIAL_STUDENT_POINTS
+        value: 100
+      - key: DEBUG
+        value: False
+      - key: CORS_ORIGINS
+        sync: false  # Set to your frontend URL

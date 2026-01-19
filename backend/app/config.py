@@ -30,8 +30,14 @@ class Settings(BaseSettings):
     
     # Server
     HOST: str = "0.0.0.0"
-    PORT: int = 8000
+    PORT: int = 8000  # Will be overridden by PORT env var on cloud platforms
     DEBUG: bool = True
+    
+    @property
+    def port(self) -> int:
+        """Get port from environment variable PORT if available (for cloud platforms)."""
+        import os
+        return int(os.getenv("PORT", self.PORT))
     
     # CORS
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
