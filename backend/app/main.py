@@ -7,6 +7,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
 from loguru import logger
 import sys
 
@@ -74,22 +77,24 @@ app = FastAPI(
     openapi_url="/api/openapi.json"
 )
 
-# Configure Session Middleware (must be before CORS)
+# Configure CORS FIRST (middleware executes in reverse order)
+# This ensures OPTIONS requests are handled before SessionMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True,  # Required for cookies
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
+
+# Configure Session Middleware (after CORS)
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.SESSION_SECRET_KEY,
     max_age=settings.SESSION_MAX_AGE,
     same_site="lax",
     https_only=not settings.DEBUG,  # Only HTTPS in production
-)
-
-# Configure CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=True,  # Required for cookies
-    allow_methods=["*"],
-    allow_headers=["*"],
 )
 
 # Include routers
