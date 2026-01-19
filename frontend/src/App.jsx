@@ -10,44 +10,18 @@ import AddStudentPage from './pages/AddStudentPage'
 import ConfigError from './components/ConfigError'
 
 /**
- * Protected route wrapper - redirects to login if not authenticated
+ * Protected route wrapper - authentication disabled, always allows access
  */
 function ProtectedRoute({ children }) {
-  const { isAuthenticated, isLoading } = useAuth()
-  
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-50">
-        <div className="animate-pulse-soft text-primary-600">
-          <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-        </div>
-      </div>
-    )
-  }
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
-  }
-  
+  // Authentication disabled - always allow access
   return children
 }
 
 /**
- * Public route wrapper - redirects to dashboard if already authenticated
+ * Public route wrapper - authentication disabled, always allows access
  */
 function PublicRoute({ children }) {
-  const { isAuthenticated, isLoading } = useAuth()
-  
-  if (isLoading) {
-    return null
-  }
-  
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />
-  }
-  
+  // Authentication disabled - always allow access
   return children
 }
 

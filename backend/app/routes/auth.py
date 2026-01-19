@@ -10,7 +10,8 @@ from loguru import logger
 
 from app.database import get_db
 from app.schemas.auth import LoginRequest
-from app.services.auth import AuthService, get_current_teacher
+from app.services.auth import AuthService
+# Authentication disabled - get_current_teacher removed
 from app.models import Teacher
 from app.config import settings
 
@@ -69,24 +70,21 @@ def login(
 
 
 @router.get("/me")
-def get_current_user(teacher: Teacher = Depends(get_current_teacher)):
+def get_current_user():
     """
-    Get current authenticated teacher's information.
-    
-    Requires valid session cookie.
+    Get current user info - authentication disabled, returns dummy data.
     """
     return {
-        "id": teacher.id,
-        "teacher_id": teacher.teacher_id,
-        "name": teacher.name,
-        "email": teacher.email
+        "id": 1,
+        "teacher_id": "T000001",
+        "name": "Public User",
+        "email": "public@edulink.com"
     }
 
 
 @router.post("/logout")
-def logout(request: Request, teacher: Teacher = Depends(get_current_teacher)):
+def logout(request: Request):
     """
-    Logout endpoint - clears session.
+    Logout endpoint - authentication disabled, no-op.
     """
-    AuthService.clear_session(request)
-    return {"message": "Successfully logged out", "teacher_id": teacher.teacher_id}
+    return {"message": "Logout successful (authentication disabled)"}
