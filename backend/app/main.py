@@ -12,7 +12,7 @@ import sys
 
 from app.config import settings
 from app.database import init_db
-from app.routes import auth_router, students_router, teachers_router, discipline_router
+from app.routes import auth_router, students_router, teachers_router, discipline_router, setup_router
 
 # Configure loguru for structured logging
 logger.remove()  # Remove default handler

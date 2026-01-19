@@ -76,7 +76,24 @@ Use **one** of these methods (any long random string is fine):
    - Use a trusted password/secret generator such as [1Password password generator](https://1password.com/password-generator)
    - Generate a **32+ character** random string and paste it into `SESSION_SECRET_KEY`.
 
-### Initialize Database
+### Initialize Database & Create Admin Account
+
+**Option 1: Using API Endpoint (Easiest)**
+
+1. Once your backend is deployed, visit:
+   ```
+   https://your-backend-url.onrender.com/api/setup/init-database
+   ```
+2. Or use curl:
+   ```bash
+   curl -X POST https://your-backend-url.onrender.com/api/setup/init-database
+   ```
+3. This will:
+   - Create all database tables
+   - Create admin account: `admin@edulink.com` / `admin123`
+4. **Done!** ✅
+
+**Option 2: Using Render Shell**
 
 1. In Render dashboard → Your service → **Shell**
 2. Run:
