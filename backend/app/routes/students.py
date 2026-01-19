@@ -71,6 +71,7 @@ def list_students(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(50, ge=1, le=100, description="Maximum records to return"),
     db: Session = Depends(get_db),
+    teacher: Teacher = Depends(get_current_teacher)
 ):
     """
     List all students with optional filtering.
@@ -111,6 +112,7 @@ def list_students(
 def get_student(
     student_id: int,
     db: Session = Depends(get_db),
+    teacher: Teacher = Depends(get_current_teacher)
 ):
     """
     Get a specific student by database ID.
@@ -130,6 +132,7 @@ def get_student(
 def create_student(
     student_data: StudentCreate,
     db: Session = Depends(get_db),
+    teacher: Teacher = Depends(get_current_teacher)
 ):
     """
     Create a new student with optional face image.
@@ -190,6 +193,7 @@ def update_student(
     student_id: int,
     student_data: StudentUpdate,
     db: Session = Depends(get_db),
+    teacher: Teacher = Depends(get_current_teacher)
 ):
     """
     Update an existing student.
@@ -252,6 +256,7 @@ def update_student(
 def delete_student(
     student_id: int,
     db: Session = Depends(get_db),
+    teacher: Teacher = Depends(get_current_teacher)
 ):
     """
     Delete a student and all related records.
@@ -276,6 +281,7 @@ def delete_student(
 def identify_student(
     request: FaceImageRequest,
     db: Session = Depends(get_db),
+    teacher: Teacher = Depends(get_current_teacher)
 ):
     """
     Identify a student by face image.
