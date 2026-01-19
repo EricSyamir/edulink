@@ -7,12 +7,19 @@ import base64
 import json
 import io
 from typing import Optional, Tuple, List
-import numpy as np
-from PIL import Image
-import cv2
 from loguru import logger
 
 from app.config import settings
+
+# Try importing heavy dependencies - they're optional
+try:
+    import numpy as np
+    from PIL import Image
+    import cv2
+    DEPENDENCIES_AVAILABLE = True
+except ImportError:
+    DEPENDENCIES_AVAILABLE = False
+    logger.warning("Face recognition dependencies not available. Install insightface, opencv-python-headless, and numpy to enable.")
 
 # Lazy load InsightFace to avoid import errors during testing
 _face_analyzer = None
@@ -22,8 +29,14 @@ def get_face_analyzer():
     """
     Get or initialize the InsightFace analyzer with buffalo_l model.
     Uses lazy loading for efficiency.
+    Returns None if face recognition is disabled or unavailable.
     """
     global _face_analyzer
+    
+    # Check if face recognition is enabled
+    if not getattr(settings, 'FACE_RECOGNITION_ENABLED', True):
+        logger.info("Face recognition is disabled via FACE_RECOGNITION_ENABLED=False")
+        return None
     
     if _face_analyzer is None:
         try:
@@ -42,9 +55,14 @@ def get_face_analyzer():
             
             logger.info("InsightFace model loaded successfully")
             
+        except ImportError as e:
+            logger.warning(f"InsightFace not available: {e}")
+            logger.warning("Face recognition will be disabled. Install insightface to enable.")
+            return None
         except Exception as e:
             logger.error(f"Failed to initialize InsightFace: {e}")
-            raise RuntimeError(f"Face recognition initialization failed: {e}")
+            logger.warning("Face recognition will be disabled due to initialization error.")
+            return None
     
     return _face_analyzer
 
@@ -60,7 +78,7 @@ class FaceRecognitionService:
         self.threshold = settings.FACE_SIMILARITY_THRESHOLD
     
     @staticmethod
-    def decode_base64_image(base64_string: str) -> np.ndarray:
+    def decode_base64_image(base64_string: str):
         """
         Decode a base64 encoded image to numpy array (BGR format for OpenCV).
         
@@ -71,8 +89,11 @@ class FaceRecognitionService:
             numpy array in BGR format
         
         Raises:
-            ValueError: If image decoding fails
+            ValueError: If image decoding fails or dependencies not available
         """
+        if not DEPENDENCIES_AVAILABLE:
+            raise ValueError("Face recognition dependencies not installed. Install insightface, opencv-python-headless, and numpy.")
+        
         try:
             # Remove data URL prefix if present
             if "," in base64_string:
@@ -117,11 +138,13 @@ class FaceRecognitionService:
             - message: Status message
         """
         try:
+            # Get face analyzer (check if available)
+            analyzer = get_face_analyzer()
+            if analyzer is None:
+                return False, None, "Face recognition is not available. Please enable it in configuration or install required dependencies."
+            
             # Decode image
             img = self.decode_base64_image(image_data)
-            
-            # Get face analyzer
-            analyzer = get_face_analyzer()
             
             # Detect faces
             faces = analyzer.get(img)
