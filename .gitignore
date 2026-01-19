@@ -13,6 +13,8 @@ dist/
 build/
 *.egg
 
+# Note: We DO track .py source files - only ignore compiled/cache files
+
 # Environment variables
 .env
 .env.local
