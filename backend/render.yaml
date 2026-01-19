@@ -11,6 +11,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.7"  # Set Python version for build
+      - key: PYTHONPATH
+        value: "/opt/render/project/src/backend"  # Add backend directory to Python path
       - key: DATABASE_URL
         sync: false  # Set this in Render dashboard
       - key: SESSION_SECRET_KEY
