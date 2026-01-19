@@ -16,10 +16,10 @@ bcrypt==4.1.2
 
 # Face Recognition
 insightface==0.7.3
-onnxruntime>=1.20.0,<2.0.0  # Compatible with InsightFace, flexible version
-opencv-python-headless>=4.9.0
-numpy>=1.26.0
-Pillow>=10.2.0
+onnxruntime==1.23.2  # Latest stable version compatible with InsightFace
+opencv-python-headless==4.9.0.80
+numpy==1.26.3
+Pillow==10.2.0
 
 # Utilities
 python-dotenv==1.0.0
