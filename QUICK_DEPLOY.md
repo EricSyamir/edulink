@@ -97,13 +97,22 @@ Use **one** of these methods (any long random string is fine):
 4. Settings:
    - **Root Directory**: `frontend`
    - **Framework**: Vite
-5. Add Environment Variable:
+5. Add Environment Variable (CRITICAL - app won't work without this!):
    ```
    VITE_API_URL=https://your-backend-url.onrender.com
    ```
-   (Use the backend URL from Step 2)
+   **Replace with your actual Render backend URL** (e.g., `https://edulink-api.onrender.com`)
+   
+   ⚠️ **If you forget this, the frontend will show a white page!**
+   
 6. Click **Deploy** → Wait ~2 minutes
 7. Copy your frontend URL (e.g., `https://edulink.vercel.app`)
+
+**Troubleshooting White Page:**
+- Open browser console (F12) and check for errors
+- Verify `VITE_API_URL` is set correctly in Vercel
+- Check that the backend URL is accessible (try opening it in browser)
+- Look for CORS errors in console
 
 ### Update CORS
 
