@@ -15,6 +15,18 @@ A production-ready face detection and discipline tracking web application for sc
 - 📱 **Mobile-Friendly** - Responsive UI optimized for phone cameras
 - 📈 **Dashboard** - Quick overview of students and discipline statistics
 
+## 🚀 Quick Deploy (Free Hosting)
+
+Want to host this online for free? Check out our deployment guides:
+
+- **[⚡ Quick Deploy Guide](./QUICK_DEPLOY.md)** - Deploy in 5 minutes
+- **[📚 Full Deployment Guide](./DEPLOYMENT.md)** - Detailed instructions with multiple hosting options
+
+**Recommended Stack (100% Free):**
+- Backend: [Render.com](https://render.com) (Free tier)
+- Frontend: [Vercel](https://vercel.com) (Free tier)
+- Database: [PlanetScale](https://planetscale.com) (Free MySQL)
+
 ## Tech Stack
 
 ### Backend
