@@ -147,19 +147,11 @@ The existing SQL migrations work as-is. Just run them in PlanetScale console.
 
 ### For Supabase (PostgreSQL)
 
-If you prefer PostgreSQL, you'll need to:
+If you prefer PostgreSQL (Supabase), use the PostgreSQL migration included in this repo:
 
-1. Sign up at [Supabase.com](https://supabase.com)
-2. Create a new project
-3. Get connection string from Settings → Database
-4. Update `DATABASE_URL` in backend to PostgreSQL format:
-   ```
-   postgresql://user:password@host:5432/database
-   ```
-5. Convert SQL migrations (Supabase uses PostgreSQL):
-   - Change `AUTO_INCREMENT` → `SERIAL`
-   - Change `TIMESTAMP` → `TIMESTAMPTZ`
-   - Remove MySQL-specific syntax
+- Run: `backend/migrations/create_tables_postgres.sql` in Supabase **SQL Editor**
+- Set `DATABASE_URL` to:
+  - `postgresql+psycopg2://postgres:YOUR_PASSWORD@db.<project>.supabase.co:5432/postgres`
 
 ---
 

@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
     
     # Database
-    DATABASE_URL: str = "mysql+pymysql://root:@localhost:3306/edulink_db"
+    DATABASE_URL: str = "postgresql+psycopg2://postgres:YOUR_PASSWORD@db.stkxcgpvzjpkblihoshz.supabase.co:5432/postgres"
     
     # JWT Authentication
     JWT_SECRET_KEY: str = "your-super-secret-jwt-key-change-in-production"
