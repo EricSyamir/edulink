@@ -41,12 +41,17 @@
    - **Start Command**: `chmod +x start.sh && ./start.sh` (or manually set: `cd /opt/render/project/src/backend && export PYTHONPATH=/opt/render/project/src/backend:$PYTHONPATH && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT`)
 5. Add Environment Variables:
    ```env
-   # Supabase PostgreSQL (recommended for your setup)
-   # Replace [YOUR-PASSWORD] with your actual Supabase database password
-   DATABASE_URL=postgresql+psycopg2://postgres:Edulink1010#@db.stkxcgpvzjpkblihoshz.supabase.co:5432/postgres
+   # Supabase PostgreSQL - Use Transaction Pooler (IPv4) for Render compatibility
+   # Go to Supabase → Settings → Database → Connection String → Transaction (IPv4)
+   # Format: postgresql+psycopg2://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
+   DATABASE_URL=postgresql+psycopg2://postgres.stkxcgpvzjpkblihoshz:Edulink1010#@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
+   
    SESSION_SECRET_KEY=Edulink1010#
    CORS_ORIGINS=https://edulink.vercel.app
    ```
+   
+   **IMPORTANT**: Use the **Transaction** pooler connection string from Supabase (port 6543), NOT the direct connection (port 5432).
+   This uses IPv4 which is compatible with Render's network.
 6. Click **Create** → Wait ~5 minutes
 7. Copy your backend URL (e.g., `https://edulink-api.onrender.com`)
 

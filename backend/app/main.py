@@ -40,13 +40,13 @@ async def lifespan(app: FastAPI):
     logger.info(f"Debug mode: {settings.DEBUG}")
     logger.info(f"CORS origins: {settings.cors_origins_list}")
     
-    # Initialize database tables
+    # Initialize database tables (non-blocking - don't crash if DB unavailable)
     try:
         init_db()
         logger.info("Database initialized successfully")
     except Exception as e:
-        logger.error(f"Database initialization failed: {e}")
-        raise
+        logger.warning(f"Database initialization failed: {e}")
+        logger.warning("App will start anyway. Database will be initialized on first request.")
     
     # Pre-load face recognition model (optional, for faster first request)
     if not settings.DEBUG:
