@@ -59,14 +59,8 @@ async def lifespan(app: FastAPI):
         logger.warning(f"Database initialization failed: {e}")
         logger.warning("App will start anyway. Database will be initialized on first request.")
     
-    # Pre-load face recognition model (optional, for faster first request)
-    if not settings.DEBUG:
-        try:
-            from app.services.face_recognition import get_face_analyzer
-            get_face_analyzer()
-            logger.info("Face recognition model pre-loaded")
-        except Exception as e:
-            logger.warning(f"Face recognition model pre-load failed: {e}")
+    # Note: Face recognition model is loaded lazily on first use to save memory during startup
+    # This prevents OOM errors on platforms with limited memory (e.g., Render free tier)
     
     yield
     
