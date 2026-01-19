@@ -42,6 +42,13 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Edulink API...")
     logger.info(f"Debug mode: {settings.DEBUG}")
     logger.info(f"CORS origins: {settings.cors_origins_list}")
+    logger.info(f"Session cookie SameSite: {'none' if not settings.DEBUG else 'lax'}")
+    logger.info(f"Session cookie Secure (HTTPS only): {not settings.DEBUG}")
+    
+    # Warn if DEBUG is True in what looks like production
+    if settings.DEBUG and not any("localhost" in origin for origin in settings.cors_origins_list):
+        logger.warning("⚠️ DEBUG=True detected but CORS origins suggest production!")
+        logger.warning("⚠️ Set DEBUG=False in production for cross-origin cookies to work!")
     
     # Initialize database tables (non-blocking - don't crash if DB unavailable)
     try:

@@ -5,6 +5,7 @@ Handles teacher login and session management.
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from sqlalchemy.orm import Session
+from loguru import logger
 
 from app.database import get_db
 from app.schemas.auth import LoginRequest
@@ -38,8 +39,11 @@ def login(
             detail="Incorrect email or password",
         )
     
-    # Set session
+    # Set session (Starlette SessionMiddleware will automatically set cookie in response)
     AuthService.set_session(request, teacher.id)
+    
+    # Log session details for debugging
+    logger.info(f"Session set for teacher_id: {teacher.id}, session keys: {list(request.session.keys())}")
     
     return {
         "message": "Login successful",
