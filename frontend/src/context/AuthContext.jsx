@@ -15,15 +15,20 @@ export function AuthProvider({ children }) {
   // Initialize auth state from session
   useEffect(() => {
     const initAuth = async () => {
+      console.log('🔐 Initializing auth...')
       try {
         // Check if we have a valid session by calling /api/auth/me
+        console.log('Checking session with /api/auth/me')
         const response = await api.get('/api/auth/me')
+        console.log('✅ Session valid:', response.data)
         setTeacher(response.data)
       } catch (error) {
         // No valid session, user not logged in
+        console.log('ℹ️ No valid session:', error.response?.status || error.message)
         setTeacher(null)
       } finally {
         setIsLoading(false)
+        console.log('🔐 Auth initialization complete')
       }
     }
     

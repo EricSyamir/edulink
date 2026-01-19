@@ -3,8 +3,22 @@ import axios from 'axios'
 /**
  * Axios instance configured for the Edulink API
  */
+const API_URL = import.meta.env.VITE_API_URL || ''
+
+// Log API configuration for debugging
+console.log('📡 API Configuration:', {
+  VITE_API_URL: import.meta.env.VITE_API_URL,
+  Using: API_URL || 'Empty - will use relative paths',
+  CurrentOrigin: window.location.origin,
+})
+
+if (!API_URL) {
+  console.warn('⚠️ VITE_API_URL is not set! API calls will use relative paths.')
+  console.warn('Set VITE_API_URL in Vercel environment variables to your backend URL')
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '',
+  baseURL: API_URL,
   timeout: 30000, // 30 seconds for face recognition
   headers: {
     'Content-Type': 'application/json',
