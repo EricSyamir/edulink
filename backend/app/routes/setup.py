@@ -31,20 +31,30 @@ def initialize_database(db: Session = Depends(get_db)):
         init_db()
         logger.info("✓ Database tables created")
         
-        # Create admin teacher if it doesn't exist
+        # Check if admin teacher exists
         existing_admin = db.query(Teacher).filter(
             Teacher.email == "admin@edulink.com"
         ).first()
         
         if existing_admin:
-            logger.info("Admin teacher already exists")
+            # Update admin password to ensure it's correct
+            logger.info("Admin teacher exists, updating password...")
+            existing_admin.password_hash = get_password_hash("admin123")
+            existing_admin.teacher_id = "T000001"  # Ensure correct teacher_id
+            existing_admin.name = "Admin Teacher"  # Ensure correct name
+            db.commit()
+            db.refresh(existing_admin)
+            logger.info("✓ Admin teacher password updated")
+            
             return {
-                "message": "Database already initialized",
-                "admin_exists": True,
-                "admin_email": "admin@edulink.com"
+                "message": "Database initialized successfully",
+                "admin_updated": True,
+                "admin_email": "admin@edulink.com",
+                "admin_password": "admin123",
+                "warning": "⚠️ CHANGE THE ADMIN PASSWORD AFTER FIRST LOGIN!"
             }
         
-        # Create admin teacher
+        # Create admin teacher if it doesn't exist
         admin_teacher = Teacher(
             teacher_id="T000001",
             name="Admin Teacher",
