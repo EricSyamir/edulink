@@ -19,7 +19,7 @@ insightface==0.7.3
 onnxruntime==1.23.2  # Latest stable version compatible with InsightFace
 opencv-python-headless==4.9.0.80
 numpy==1.26.3
-Pillow==10.2.0
+Pillow>=10.4.0  # Updated for Python 3.13 compatibility
 
 # Utilities
 python-dotenv==1.0.0
