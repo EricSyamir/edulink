@@ -39,13 +39,34 @@
    - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 5. Add Environment Variables:
-   ```
-   DATABASE_URL=your-database-connection-string
-   SESSION_SECRET_KEY=generate-random-string-here (optional, but recommended)
-   CORS_ORIGINS=https://your-frontend-url.vercel.app
+   ```env
+   # Supabase PostgreSQL (recommended for your setup)
+   # Replace [YOUR-PASSWORD] with your actual Supabase database password
+   DATABASE_URL=postgresql+psycopg2://postgres:[YOUR-PASSWORD]@db.stkxcgpvzjpkblihoshz.supabase.co:5432/postgres
+   SESSION_SECRET_KEY=Edulink1010#
+   CORS_ORIGINS=https://edulink.vercel.app
    ```
 6. Click **Create** → Wait ~5 minutes
 7. Copy your backend URL (e.g., `https://edulink-api.onrender.com`)
+
+### How to generate `SESSION_SECRET_KEY`
+
+Use **one** of these methods (any long random string is fine):
+
+1. **Python (recommended)** – run this once in a terminal:
+   ```bash
+   python -c "import secrets; print(secrets.token_urlsafe(32))"
+   ```
+   Copy the printed value into `SESSION_SECRET_KEY`.
+
+2. **Node.js**:
+   ```bash
+   node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"
+   ```
+
+3. **Online generator** (last resort):
+   - Use a trusted password/secret generator such as [1Password password generator](https://1password.com/password-generator)
+   - Generate a **32+ character** random string and paste it into `SESSION_SECRET_KEY`.
 
 ### Initialize Database
 
