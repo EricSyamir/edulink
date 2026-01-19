@@ -14,10 +14,13 @@ itsdangerous==2.1.2
 passlib[bcrypt]==1.7.4
 bcrypt==4.1.2
 
-# Face Recognition
-insightface==0.7.3
-onnxruntime==1.23.2  # Latest stable version compatible with InsightFace
-opencv-python-headless==4.9.0.80
+# Face Recognition - COMMENTED OUT to prevent OOM on Render free tier (512MB limit)
+# Uncomment these when you upgrade to hosting with 1GB+ RAM (e.g., Fly.io $1.94/month)
+# insightface==0.7.3
+# onnxruntime==1.23.2  # Latest stable version compatible with InsightFace
+# opencv-python-headless==4.9.0.80
+
+# Basic image processing (required for app to run, but lighter than OpenCV)
 numpy==1.26.3
 Pillow>=10.4.0  # Updated for Python 3.13 compatibility
 
