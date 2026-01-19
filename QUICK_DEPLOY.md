@@ -42,16 +42,18 @@
 5. Add Environment Variables:
    ```env
    # Supabase PostgreSQL - Use Transaction Pooler (IPv4) for Render compatibility
-   # Go to Supabase → Settings → Database → Connection String → Transaction (IPv4)
-   # Format: postgresql+psycopg2://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
-   DATABASE_URL=postgresql+psycopg2://postgres.stkxcgpvzjpkblihoshz:Edulink1010#@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
+   # Go to Supabase → Settings → Database → Connection String → Transaction mode
+   # IMPORTANT: Use port 6543 (Transaction pooler), NOT 5432 (Direct connection)
+   DATABASE_URL=postgresql+psycopg2://postgres.stkxcgpvzjpkblihoshz:Edulink1010#@aws-1-ap-south-1.pooler.supabase.com:6543/postgres
    
    SESSION_SECRET_KEY=Edulink1010#
    CORS_ORIGINS=https://edulink.vercel.app
    ```
    
-   **IMPORTANT**: Use the **Transaction** pooler connection string from Supabase (port 6543), NOT the direct connection (port 5432).
-   This uses IPv4 which is compatible with Render's network.
+   **IMPORTANT**: 
+   - Use the **Transaction pooler** (port 6543), NOT the direct connection (port 5432)
+   - The pooler uses IPv4 which is compatible with Render's network
+   - Direct connection uses IPv6 which Render doesn't support
 6. Click **Create** → Wait ~5 minutes
 7. Copy your backend URL (e.g., `https://edulink-api.onrender.com`)
 
