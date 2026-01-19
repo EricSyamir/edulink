@@ -23,7 +23,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Required for cookies/sessions
+  withCredentials: false, // No cookies/sessions needed - using localStorage instead
 })
 
 // Response interceptor - handle common errors
