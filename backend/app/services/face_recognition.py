@@ -1,6 +1,6 @@
 """
 Face Recognition Service
-Handles face detection, alignment, and embedding generation using InsightFace buffalo_l model.
+Handles face detection, alignment, and embedding generation using InsightFace buffalo_sc model.
 """
 
 import base64
@@ -27,7 +27,7 @@ _face_analyzer = None
 
 def get_face_analyzer():
     """
-    Get or initialize the InsightFace analyzer with buffalo_l model.
+    Get or initialize the InsightFace analyzer with buffalo_sc model.
     Uses lazy loading for efficiency.
     Returns None if face recognition is disabled or unavailable.
     """
@@ -44,7 +44,7 @@ def get_face_analyzer():
             
             logger.info(f"Initializing InsightFace with model: {settings.FACE_MODEL_NAME}")
             
-            # Initialize FaceAnalysis with buffalo_l model
+            # Initialize FaceAnalysis with buffalo_sc model
             _face_analyzer = FaceAnalysis(
                 name=settings.FACE_MODEL_NAME,
                 providers=['CPUExecutionProvider']  # Use CPU, add CUDAExecutionProvider for GPU
@@ -70,7 +70,7 @@ def get_face_analyzer():
 class FaceRecognitionService:
     """
     Service for face detection, embedding generation, and matching.
-    Uses InsightFace with the buffalo_l model.
+    Uses InsightFace with the buffalo_sc model (smaller, memory-efficient).
     """
     
     def __init__(self):

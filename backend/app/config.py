@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     
     # Face Recognition
     FACE_SIMILARITY_THRESHOLD: float = 0.5  # Cosine similarity threshold (0-1)
-    FACE_MODEL_NAME: str = "buffalo_l"
+    FACE_MODEL_NAME: str = "buffalo_sc"  # Smaller model, uses less memory than buffalo_l
     FACE_RECOGNITION_ENABLED: bool = True  # Set to False to disable face recognition (saves memory)
     
     # Discipline Points
