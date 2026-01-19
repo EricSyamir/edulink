@@ -14,10 +14,10 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql+psycopg2://postgres:YOUR_PASSWORD@db.stkxcgpvzjpkblihoshz.supabase.co:5432/postgres"
     
-    # JWT Authentication
-    JWT_SECRET_KEY: str = "your-super-secret-jwt-key-change-in-production"
-    JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRATION_HOURS: int = 24
+    # Session Authentication
+    SESSION_SECRET_KEY: str = "your-super-secret-session-key-change-in-production"
+    SESSION_COOKIE_NAME: str = "edulink_session"
+    SESSION_MAX_AGE: int = 86400  # 24 hours in seconds
     
     # Face Recognition
     FACE_SIMILARITY_THRESHOLD: float = 0.5  # Cosine similarity threshold (0-1)

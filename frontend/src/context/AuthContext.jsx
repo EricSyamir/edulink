@@ -5,7 +5,6 @@ import toast from 'react-hot-toast'
 
 const AuthContext = createContext(null)
 
-const TOKEN_KEY = 'edulink_token'
 const TEACHER_KEY = 'edulink_teacher'
 
 export function AuthProvider({ children }) {
@@ -13,27 +12,19 @@ export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true)
   const queryClient = useQueryClient()
   
-  // Initialize auth state from localStorage
+  // Initialize auth state from session
   useEffect(() => {
     const initAuth = async () => {
-      const token = localStorage.getItem(TOKEN_KEY)
-      const savedTeacher = localStorage.getItem(TEACHER_KEY)
-      
-      if (token && savedTeacher) {
-        try {
-          // Verify token is still valid
-          api.defaults.headers.common['Authorization'] = `Bearer ${token}`
-          const response = await api.get('/api/auth/me')
-          setTeacher(response.data)
-        } catch (error) {
-          // Token invalid, clear storage
-          localStorage.removeItem(TOKEN_KEY)
-          localStorage.removeItem(TEACHER_KEY)
-          delete api.defaults.headers.common['Authorization']
-        }
+      try {
+        // Check if we have a valid session by calling /api/auth/me
+        const response = await api.get('/api/auth/me')
+        setTeacher(response.data)
+      } catch (error) {
+        // No valid session, user not logged in
+        setTeacher(null)
+      } finally {
+        setIsLoading(false)
       }
-      
-      setIsLoading(false)
     }
     
     initAuth()
@@ -45,14 +36,10 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (email, password) => {
     try {
       const response = await api.post('/api/auth/login', { email, password })
-      const { access_token, teacher: teacherData } = response.data
+      const { teacher: teacherData } = response.data
       
-      // Store token and teacher data
-      localStorage.setItem(TOKEN_KEY, access_token)
+      // Store teacher data in localStorage for quick access (session is in cookie)
       localStorage.setItem(TEACHER_KEY, JSON.stringify(teacherData))
-      
-      // Set default auth header
-      api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
       
       setTeacher(teacherData)
       toast.success(`Welcome back, ${teacherData.name}!`)
@@ -68,10 +55,17 @@ export function AuthProvider({ children }) {
   /**
    * Logout and clear all auth data
    */
-  const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY)
+  const logout = useCallback(async () => {
+    try {
+      // Call logout endpoint to clear server-side session
+      await api.post('/api/auth/logout')
+    } catch (error) {
+      // Continue with logout even if API call fails
+      console.error('Logout API error:', error)
+    }
+    
+    // Clear local storage
     localStorage.removeItem(TEACHER_KEY)
-    delete api.defaults.headers.common['Authorization']
     setTeacher(null)
     
     // Clear all cached queries

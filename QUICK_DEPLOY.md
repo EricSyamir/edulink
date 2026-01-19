@@ -41,7 +41,7 @@
 5. Add Environment Variables:
    ```
    DATABASE_URL=your-database-connection-string
-   JWT_SECRET_KEY=generate-random-string-here
+   SESSION_SECRET_KEY=generate-random-string-here (optional, but recommended)
    CORS_ORIGINS=https://your-frontend-url.vercel.app
    ```
 6. Click **Create** → Wait ~5 minutes

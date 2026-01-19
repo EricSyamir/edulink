@@ -1,23 +1,19 @@
 """
 Authentication Service
-Handles teacher authentication and authorization.
+Handles teacher authentication and authorization using sessions.
 """
 
-from datetime import timedelta
 from typing import Optional
 from sqlalchemy.orm import Session
-from fastapi import HTTPException, status, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import HTTPException, status, Depends, Request
 from loguru import logger
 
 from app.models import Teacher
-from app.schemas.auth import TokenResponse, TokenData
-from app.utils.security import verify_password, create_access_token, decode_access_token
-from app.config import settings
+from app.utils.security import verify_password
 from app.database import get_db
 
-# Bearer token security scheme
-security = HTTPBearer()
+# Session key for storing teacher ID
+SESSION_KEY_TEACHER_ID = "teacher_id"
 
 
 class AuthService:
@@ -50,87 +46,71 @@ class AuthService:
         return teacher
     
     @staticmethod
-    def create_token_response(teacher: Teacher) -> TokenResponse:
+    def set_session(request: Request, teacher_id: int):
         """
-        Create a JWT token response for authenticated teacher.
+        Set teacher ID in session.
         
         Args:
-            teacher: Authenticated teacher object
-        
-        Returns:
-            TokenResponse with access token and teacher info
+            request: FastAPI request object
+            teacher_id: Teacher's database ID
         """
-        # Token payload
-        token_data = {
-            "sub": str(teacher.id),
-            "email": teacher.email,
-            "teacher_id": teacher.teacher_id
-        }
-        
-        # Create access token
-        access_token = create_access_token(token_data)
-        
-        # Calculate expiration in seconds
-        expires_in = settings.JWT_EXPIRATION_HOURS * 3600
-        
-        return TokenResponse(
-            access_token=access_token,
-            token_type="bearer",
-            expires_in=expires_in,
-            teacher={
-                "id": teacher.id,
-                "teacher_id": teacher.teacher_id,
-                "name": teacher.name,
-                "email": teacher.email
-            }
-        )
+        request.session[SESSION_KEY_TEACHER_ID] = teacher_id
+        logger.debug(f"Session set for teacher_id: {teacher_id}")
     
     @staticmethod
-    def get_current_teacher_from_token(token: str, db: Session) -> Teacher:
+    def clear_session(request: Request):
         """
-        Get current teacher from JWT token.
+        Clear session data.
         
         Args:
-            token: JWT token string
+            request: FastAPI request object
+        """
+        request.session.clear()
+        logger.debug("Session cleared")
+    
+    @staticmethod
+    def get_current_teacher_from_session(request: Request, db: Session) -> Teacher:
+        """
+        Get current teacher from session.
+        
+        Args:
+            request: FastAPI request object
             db: Database session
         
         Returns:
             Teacher object
         
         Raises:
-            HTTPException: If token is invalid or teacher not found
+            HTTPException: If session is invalid or teacher not found
         """
-        credentials_exception = HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-        
-        payload = decode_access_token(token)
-        
-        if payload is None:
-            raise credentials_exception
-        
-        teacher_id: str = payload.get("sub")
+        teacher_id = request.session.get(SESSION_KEY_TEACHER_ID)
         
         if teacher_id is None:
-            raise credentials_exception
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not authenticated",
+            )
         
         teacher = db.query(Teacher).filter(Teacher.id == int(teacher_id)).first()
         
         if teacher is None:
-            raise credentials_exception
+            # Invalid session, clear it
+            AuthService.clear_session(request)
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid session",
+            )
         
         return teacher
 
 
 # Dependency function for protected routes
 async def get_current_teacher(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    request: Request,
     db: Session = Depends(get_db)
 ) -> Teacher:
     """
-    FastAPI dependency to get current authenticated teacher.
+    FastAPI dependency to get current authenticated teacher from session.
     Use this in route dependencies to protect endpoints.
     
     Usage:
@@ -138,7 +118,7 @@ async def get_current_teacher(
         def protected_route(teacher: Teacher = Depends(get_current_teacher)):
             return {"teacher": teacher.name}
     """
-    return AuthService.get_current_teacher_from_token(credentials.credentials, db)
+    return AuthService.get_current_teacher_from_session(request, db)
 
 
 # Global service instance

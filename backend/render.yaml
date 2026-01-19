@@ -10,12 +10,12 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false  # Set this in Render dashboard
-      - key: JWT_SECRET_KEY
+      - key: SESSION_SECRET_KEY
         generateValue: true
-      - key: JWT_ALGORITHM
-        value: HS256
-      - key: JWT_EXPIRATION_HOURS
-        value: 24
+      - key: SESSION_COOKIE_NAME
+        value: edulink_session
+      - key: SESSION_MAX_AGE
+        value: 86400
       - key: FACE_SIMILARITY_THRESHOLD
         value: 0.5
       - key: FACE_MODEL_NAME

@@ -9,19 +9,8 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Required for cookies/sessions
 })
-
-// Request interceptor - add auth token if available
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('edulink_token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => Promise.reject(error)
-)
 
 // Response interceptor - handle common errors
 api.interceptors.response.use(
@@ -29,7 +18,6 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Clear auth data on unauthorized
-      localStorage.removeItem('edulink_token')
       localStorage.removeItem('edulink_teacher')
       window.location.href = '/login'
     }

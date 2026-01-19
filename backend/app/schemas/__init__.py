@@ -24,8 +24,6 @@ from app.schemas.discipline import (
 )
 from app.schemas.auth import (
     LoginRequest,
-    TokenResponse,
-    TokenData,
 )
 
 __all__ = [
@@ -47,6 +45,4 @@ __all__ = [
     "DisciplineRecordWithDetails",
     # Auth schemas
     "LoginRequest",
-    "TokenResponse",
-    "TokenData",
 ]
