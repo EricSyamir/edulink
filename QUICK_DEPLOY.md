@@ -38,7 +38,7 @@
    - **Root Directory**: `backend`
    - **Python Version**: `3.12.7` (IMPORTANT: Set this manually in Render dashboard → Settings → Python Version)
    - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - **Start Command**: `chmod +x start.sh && ./start.sh` (or manually set: `cd /opt/render/project/src/backend && export PYTHONPATH=/opt/render/project/src/backend:$PYTHONPATH && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT`)
 5. Add Environment Variables:
    ```env
    # Supabase PostgreSQL (recommended for your setup)
