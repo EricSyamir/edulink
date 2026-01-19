@@ -7,6 +7,7 @@ import ScanPage from './pages/ScanPage'
 import StudentDetailPage from './pages/StudentDetailPage'
 import StudentsPage from './pages/StudentsPage'
 import AddStudentPage from './pages/AddStudentPage'
+import ConfigError from './components/ConfigError'
 
 /**
  * Protected route wrapper - redirects to login if not authenticated
@@ -88,6 +89,16 @@ function AppRoutes() {
 
 export default function App() {
   console.log('📱 App component rendering...')
+  
+  // Check if API URL is configured (only warn in production)
+  const apiUrl = import.meta.env.VITE_API_URL
+  const isProduction = import.meta.env.PROD
+  
+  // In production, show error if API URL is not set
+  if (isProduction && !apiUrl) {
+    console.error('❌ VITE_API_URL is not set in production!')
+    return <ConfigError />
+  }
   
   return (
     <BrowserRouter>
