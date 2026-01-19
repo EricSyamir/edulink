@@ -3,20 +3,12 @@ Edulink API - Main Application
 Face detection and discipline tracking system for schools.
 """
 
-import sys
-from pathlib import Path
-
-# Add backend directory to Python path for imports
-# This ensures 'app' module can be found regardless of where Python is invoked from
-backend_dir = Path(__file__).parent.parent
-if str(backend_dir) not in sys.path:
-    sys.path.insert(0, str(backend_dir))
-
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from loguru import logger
+import sys
 
 from app.config import settings
 from app.database import init_db
