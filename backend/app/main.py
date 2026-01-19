@@ -93,6 +93,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(setup_router)  # Setup routes (no auth required)
 app.include_router(auth_router)
 app.include_router(students_router)
 app.include_router(teachers_router)
