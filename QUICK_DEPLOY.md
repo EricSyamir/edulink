@@ -36,13 +36,14 @@
 4. Settings:
    - **Name**: `edulink-api`
    - **Root Directory**: `backend`
+   - **Python Version**: `3.12.7` (IMPORTANT: Set this manually in Render dashboard → Settings → Python Version)
    - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 5. Add Environment Variables:
    ```env
    # Supabase PostgreSQL (recommended for your setup)
    # Replace [YOUR-PASSWORD] with your actual Supabase database password
-   DATABASE_URL=postgresql+psycopg2://postgres:[YOUR-PASSWORD]@db.stkxcgpvzjpkblihoshz.supabase.co:5432/postgres
+   DATABASE_URL=postgresql+psycopg2://postgres:Edulink1010#@db.stkxcgpvzjpkblihoshz.supabase.co:5432/postgres
    SESSION_SECRET_KEY=Edulink1010#
    CORS_ORIGINS=https://edulink.vercel.app
    ```
