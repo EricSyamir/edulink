@@ -6,7 +6,7 @@ Face detection and discipline tracking system for schools.
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.sessions import SessionMiddleware
+# SessionMiddleware removed - no cookies/sessions
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
@@ -79,28 +79,17 @@ app = FastAPI(
     openapi_url="/api/openapi.json"
 )
 
-# Configure CORS FIRST (middleware executes in reverse order)
-# This ensures OPTIONS requests are handled before SessionMiddleware
+# Configure CORS - No cookies needed, simplified
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
-    allow_credentials=True,  # Required for cookies
+    allow_credentials=False,  # No cookies needed
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*"],
 )
 
-# Configure Session Middleware (after CORS)
-# Use same_site="none" for cross-origin cookie support (requires HTTPS)
-# In production (HTTPS), use "none" to allow cross-origin cookies
-# In development (HTTP), use "lax" since "none" requires Secure flag
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=settings.SESSION_SECRET_KEY,
-    max_age=settings.SESSION_MAX_AGE,
-    same_site="none" if not settings.DEBUG else "lax",  # "none" for cross-origin, requires HTTPS
-    https_only=not settings.DEBUG,  # Only HTTPS in production (required for SameSite=None)
-)
+# Session middleware removed - no cookies, no sessions, just basic login
 
 # Debug middleware to log cookie headers (runs after SessionMiddleware)
 # Middleware executes in reverse order, so this runs AFTER SessionMiddleware

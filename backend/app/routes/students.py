@@ -18,8 +18,7 @@ from app.schemas.student import (
     StudentWithPoints,
     StudentIdentifyResponse,
 )
-# Authentication disabled - all routes are public
-# from app.services.auth import get_current_teacher
+# Authentication removed - no get_current_teacher needed
 from app.services.face_recognition import face_recognition_service
 from app.services.discipline import discipline_service
 from app.config import settings
@@ -72,7 +71,6 @@ def list_students(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(50, ge=1, le=100, description="Maximum records to return"),
     db: Session = Depends(get_db),
-    # Authentication disabled - route is public
 ):
     """
     List all students with optional filtering.
@@ -113,7 +111,6 @@ def list_students(
 def get_student(
     student_id: int,
     db: Session = Depends(get_db),
-    # Authentication disabled - route is public
 ):
     """
     Get a specific student by database ID.
@@ -133,7 +130,6 @@ def get_student(
 def create_student(
     student_data: StudentCreate,
     db: Session = Depends(get_db),
-    # Authentication disabled - route is public
 ):
     """
     Create a new student with optional face image.
@@ -194,7 +190,6 @@ def update_student(
     student_id: int,
     student_data: StudentUpdate,
     db: Session = Depends(get_db),
-    # Authentication disabled - route is public
 ):
     """
     Update an existing student.
@@ -257,7 +252,6 @@ def update_student(
 def delete_student(
     student_id: int,
     db: Session = Depends(get_db),
-    # Authentication disabled - route is public
 ):
     """
     Delete a student and all related records.
@@ -282,7 +276,6 @@ def delete_student(
 def identify_student(
     request: FaceImageRequest,
     db: Session = Depends(get_db),
-    # Authentication disabled - route is public
 ):
     """
     Identify a student by face image.
