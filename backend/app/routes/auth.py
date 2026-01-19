@@ -41,10 +41,12 @@ def login(
         )
     
     # Set session (Starlette SessionMiddleware will automatically set cookie in response)
+    # Each browser/device gets its own unique session cookie, allowing multiple concurrent logins
+    # Previous sessions from other browsers/devices remain valid and are not invalidated
     AuthService.set_session(request, teacher.id)
     
     # Log session details for debugging
-    logger.info(f"Session set for teacher_id: {teacher.id}, session keys: {list(request.session.keys())}")
+    logger.info(f"Session created for teacher_id: {teacher.id} (allows concurrent logins from other browsers)")
     
     # Ensure session is saved by accessing it (forces Starlette to serialize)
     # This ensures the cookie is set in the response
