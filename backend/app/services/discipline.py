@@ -226,18 +226,18 @@ class DisciplineService:
         # Get form from first student
         form = students[0].form if students else 0
         
-        # Total counts - use enum values
+        # Total counts - use string literals for enum comparison
         light_total = db.query(func.count(DisciplineRecord.id)).filter(
             and_(
                 DisciplineRecord.student_id.in_(student_ids),
-                DisciplineRecord.severity == MisconductSeverity.LIGHT.value
+                DisciplineRecord.severity == "light"
             )
         ).scalar() or 0
         
         medium_total = db.query(func.count(DisciplineRecord.id)).filter(
             and_(
                 DisciplineRecord.student_id.in_(student_ids),
-                DisciplineRecord.severity == MisconductSeverity.MEDIUM.value
+                DisciplineRecord.severity == "medium"
             )
         ).scalar() or 0
         
@@ -245,7 +245,7 @@ class DisciplineService:
         light_monthly = db.query(func.count(DisciplineRecord.id)).filter(
             and_(
                 DisciplineRecord.student_id.in_(student_ids),
-                DisciplineRecord.severity == MisconductSeverity.LIGHT.value,
+                DisciplineRecord.severity == "light",
                 DisciplineRecord.created_at >= month_start
             )
         ).scalar() or 0
@@ -253,7 +253,7 @@ class DisciplineService:
         medium_monthly = db.query(func.count(DisciplineRecord.id)).filter(
             and_(
                 DisciplineRecord.student_id.in_(student_ids),
-                DisciplineRecord.severity == MisconductSeverity.MEDIUM.value,
+                DisciplineRecord.severity == "medium",
                 DisciplineRecord.created_at >= month_start
             )
         ).scalar() or 0
