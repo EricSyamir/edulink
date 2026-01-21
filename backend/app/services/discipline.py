@@ -48,15 +48,17 @@ class DisciplineService:
         if not student:
             raise ValueError(f"Student with id {student_id} not found")
         
-        # Create discipline record - ensure lowercase
-        severity_lower = severity.lower()
-        # Get the enum member - TypeDecorator will handle converting to value
-        severity_enum = MisconductSeverity(severity_lower)
+        # Create discipline record - ensure lowercase string value
+        severity_value = severity.lower()
+        
+        # Validate severity
+        if severity_value not in ["light", "medium"]:
+            raise ValueError(f"Invalid severity: {severity}. Must be 'light' or 'medium'")
         
         discipline_record = DisciplineRecord(
             student_id=student_id,
             teacher_id=teacher_id,
-            severity=severity_enum,  # TypeDecorator will convert to value
+            severity=severity_value,  # Pass lowercase string directly
             misconduct_type=misconduct_type,
             notes=notes
         )

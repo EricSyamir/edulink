@@ -3,7 +3,7 @@ Discipline Record Model
 Tracks light and medium misconducts for students.
 """
 
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum, Index, TypeDecorator
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -15,36 +15,6 @@ class MisconductSeverity(str, enum.Enum):
     """Enum for misconduct severity levels."""
     LIGHT = "light"
     MEDIUM = "medium"
-
-
-class MisconductSeverityEnum(TypeDecorator):
-    """Type decorator to ensure enum values are used, not names."""
-    impl = String
-    cache_ok = True
-    
-    def process_bind_param(self, value, dialect):
-        """Convert enum to its value when binding to database."""
-        if value is None:
-            return None
-        if isinstance(value, MisconductSeverity):
-            return value.value  # Return the enum value, not the name
-        if isinstance(value, str):
-            return value.lower()  # Ensure lowercase
-        return value
-    
-    def process_result_value(self, value, dialect):
-        """Convert database value back to enum."""
-        if value is None:
-            return None
-        if isinstance(value, str):
-            return MisconductSeverity(value)
-        return value
-    
-    def load_dialect_impl(self, dialect):
-        """Use PostgreSQL enum type for PostgreSQL dialect."""
-        if dialect.name == 'postgresql':
-            return dialect.type_descriptor(Enum(MisconductSeverity, native_enum=True, create_type=False))
-        return dialect.type_descriptor(String())
 
 
 class LightMisconductType(str, enum.Enum):
@@ -73,7 +43,7 @@ class DisciplineRecord(Base):
         id: Primary key, auto-incremented
         student_id: Foreign key to students table
         teacher_id: Foreign key to teachers table (who created the record)
-        severity: Either "light" or "medium"
+        severity: Either "light" or "medium" (stored as string, cast to enum by DB)
         misconduct_type: The specific type of misconduct
         notes: Optional additional notes about the incident
         created_at: Timestamp when record was created
@@ -84,7 +54,9 @@ class DisciplineRecord(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
     teacher_id = Column(Integer, ForeignKey("teachers.id", ondelete="SET NULL"), nullable=True, index=True)
-    severity = Column(MisconductSeverityEnum, nullable=False)
+    # Use String column - PostgreSQL will cast to enum type automatically
+    # This avoids SQLAlchemy's enum serialization issues
+    severity = Column(String(20), nullable=False)
     misconduct_type = Column(String(100), nullable=False)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)

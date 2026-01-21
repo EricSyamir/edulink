@@ -78,10 +78,26 @@ def run_auto_migration():
         """))
         has_severity = result.scalar() > 0
         
-        # If everything is already migrated, skip
-        if has_is_admin and has_form and has_severity:
+        # Check if severity column is currently an enum type (needs conversion to varchar)
+        result = db.execute(text("""
+            SELECT data_type 
+            FROM information_schema.columns 
+            WHERE table_name = 'discipline_records' AND column_name = 'severity'
+        """))
+        severity_type_row = result.fetchone()
+        severity_is_enum = severity_type_row and severity_type_row[0] == 'USER-DEFINED'
+        
+        # If everything is already migrated and severity is varchar, skip
+        if has_is_admin and has_form and has_severity and not severity_is_enum:
             logger.info("Database schema is up to date - no migration needed")
             return
+        
+        # If severity is enum, convert to varchar
+        if has_severity and severity_is_enum:
+            logger.info("Converting severity column from enum to varchar...")
+            db.execute(text("ALTER TABLE discipline_records ALTER COLUMN severity TYPE VARCHAR(20) USING severity::text"))
+            db.commit()
+            logger.info("✓ Converted severity to varchar")
         
         logger.warning("Database schema needs migration - running auto-migration...")
         
@@ -124,17 +140,7 @@ def run_auto_migration():
                 db.execute(text("UPDATE discipline_records SET severity = 'medium' WHERE type::text = 'punishment'"))
             
             db.execute(text("ALTER TABLE discipline_records ALTER COLUMN severity SET NOT NULL"))
-            
-            # Create enum type
-            db.execute(text("""
-                DO $$ BEGIN
-                    CREATE TYPE misconduct_severity AS ENUM ('light', 'medium');
-                EXCEPTION WHEN duplicate_object THEN null;
-                END $$;
-            """))
-            
-            # Convert to enum
-            db.execute(text("ALTER TABLE discipline_records ALTER COLUMN severity TYPE misconduct_severity USING severity::misconduct_severity"))
+            # Keep as VARCHAR - no enum conversion needed
             
             # Add misconduct_type
             db.execute(text("ALTER TABLE discipline_records ADD COLUMN misconduct_type VARCHAR(100)"))

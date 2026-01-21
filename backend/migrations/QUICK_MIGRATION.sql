@@ -19,24 +19,15 @@ BEGIN
     END IF;
 END $$;
 
--- 3. Update discipline_records table
+-- 3. Update discipline_records table - use VARCHAR for severity (not enum)
 DO $$ 
 BEGIN
-    -- Add severity column
+    -- Add severity column if it doesn't exist
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'discipline_records' AND column_name = 'severity') THEN
         ALTER TABLE discipline_records ADD COLUMN severity VARCHAR(20);
         UPDATE discipline_records SET severity = 'light' WHERE type = 'reward';
         UPDATE discipline_records SET severity = 'medium' WHERE type = 'punishment';
         ALTER TABLE discipline_records ALTER COLUMN severity SET NOT NULL;
-        
-        -- Create enum type
-        DO $$ BEGIN
-            CREATE TYPE misconduct_severity AS ENUM ('light', 'medium');
-        EXCEPTION WHEN duplicate_object THEN null;
-        END $$;
-        
-        -- Convert to enum
-        ALTER TABLE discipline_records ALTER COLUMN severity TYPE misconduct_severity USING severity::misconduct_severity;
     END IF;
     
     -- Add misconduct_type column
@@ -44,8 +35,9 @@ BEGIN
         ALTER TABLE discipline_records ADD COLUMN misconduct_type VARCHAR(100);
         UPDATE discipline_records SET misconduct_type = 
             CASE 
-                WHEN severity = 'light' THEN 'Late to Class'
-                WHEN severity = 'medium' THEN 'Skipping Class'
+                WHEN severity::text = 'light' THEN 'Late to Class'
+                WHEN severity::text = 'medium' THEN 'Skipping Class'
+                ELSE 'Late to Class'
             END;
         ALTER TABLE discipline_records ALTER COLUMN misconduct_type SET NOT NULL;
     END IF;
@@ -61,10 +53,23 @@ BEGIN
     ALTER TABLE discipline_records DROP COLUMN IF EXISTS points_change;
 END $$;
 
--- 4. Drop student_points table
+-- 4. Convert severity from enum to VARCHAR if it's currently an enum
+DO $$ 
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'discipline_records' 
+        AND column_name = 'severity' 
+        AND data_type = 'USER-DEFINED'
+    ) THEN
+        ALTER TABLE discipline_records ALTER COLUMN severity TYPE VARCHAR(20) USING severity::text;
+    END IF;
+END $$;
+
+-- 5. Drop student_points table
 DROP TABLE IF EXISTS student_points CASCADE;
 
--- 5. Create indexes
+-- 6. Create indexes
 CREATE INDEX IF NOT EXISTS idx_student_form ON students(form);
 CREATE INDEX IF NOT EXISTS idx_discipline_severity ON discipline_records(severity);
 CREATE INDEX IF NOT EXISTS idx_discipline_misconduct_type ON discipline_records(misconduct_type);
