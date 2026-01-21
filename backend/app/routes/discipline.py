@@ -94,6 +94,7 @@ def list_discipline_records(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="severity must be 'light' or 'medium'"
             )
+        # Use string literal for enum comparison
         query = query.filter(DisciplineRecord.severity == severity)
     
     if form:
@@ -226,11 +227,11 @@ def get_analytics(
     from sqlalchemy import func
     
     total_light = db.query(func.count(DisciplineRecord.id)).filter(
-        DisciplineRecord.severity == MisconductSeverity.LIGHT
+        DisciplineRecord.severity == "light"
     ).scalar() or 0
     
     total_medium = db.query(func.count(DisciplineRecord.id)).filter(
-        DisciplineRecord.severity == MisconductSeverity.MEDIUM
+        DisciplineRecord.severity == "medium"
     ).scalar() or 0
     
     # Get monthly misconducts
@@ -238,12 +239,12 @@ def get_analytics(
     month_start = datetime(now.year, now.month, 1)
     
     monthly_light = db.query(func.count(DisciplineRecord.id)).filter(
-        DisciplineRecord.severity == MisconductSeverity.LIGHT,
+        DisciplineRecord.severity == "light",
         DisciplineRecord.created_at >= month_start
     ).scalar() or 0
     
     monthly_medium = db.query(func.count(DisciplineRecord.id)).filter(
-        DisciplineRecord.severity == MisconductSeverity.MEDIUM,
+        DisciplineRecord.severity == "medium",
         DisciplineRecord.created_at >= month_start
     ).scalar() or 0
     
