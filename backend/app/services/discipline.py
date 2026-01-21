@@ -49,10 +49,14 @@ class DisciplineService:
             raise ValueError(f"Student with id {student_id} not found")
         
         # Create discipline record - ensure lowercase
+        severity_lower = severity.lower()
+        # Get the enum member - TypeDecorator will handle converting to value
+        severity_enum = MisconductSeverity(severity_lower)
+        
         discipline_record = DisciplineRecord(
             student_id=student_id,
             teacher_id=teacher_id,
-            severity=MisconductSeverity(severity.lower()),
+            severity=severity_enum,  # TypeDecorator will convert to value
             misconduct_type=misconduct_type,
             notes=notes
         )

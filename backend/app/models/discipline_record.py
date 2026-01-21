@@ -3,7 +3,7 @@ Discipline Record Model
 Tracks light and medium misconducts for students.
 """
 
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum, Index
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum, Index, TypeDecorator
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -15,6 +15,28 @@ class MisconductSeverity(str, enum.Enum):
     """Enum for misconduct severity levels."""
     LIGHT = "light"
     MEDIUM = "medium"
+
+
+class MisconductSeverityEnum(TypeDecorator):
+    """Type decorator to ensure enum values are used, not names."""
+    impl = Enum(MisconductSeverity, native_enum=True, create_type=False)
+    cache_ok = True
+    
+    def process_bind_param(self, value, dialect):
+        """Convert enum to its value when binding to database."""
+        if value is None:
+            return None
+        if isinstance(value, MisconductSeverity):
+            return value.value  # Return the enum value, not the name
+        return value
+    
+    def process_result_value(self, value, dialect):
+        """Convert database value back to enum."""
+        if value is None:
+            return None
+        if isinstance(value, str):
+            return MisconductSeverity(value)
+        return value
 
 
 class LightMisconductType(str, enum.Enum):
@@ -54,7 +76,7 @@ class DisciplineRecord(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
     teacher_id = Column(Integer, ForeignKey("teachers.id", ondelete="SET NULL"), nullable=True, index=True)
-    severity = Column(Enum(MisconductSeverity), nullable=False)
+    severity = Column(MisconductSeverityEnum, nullable=False)
     misconduct_type = Column(String(100), nullable=False)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
