@@ -19,18 +19,7 @@ BEGIN
     END IF;
 END $$;
 
--- 3. Add severity column to discipline_records
-DO $$ 
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'discipline_records' AND column_name = 'severity') THEN
-        ALTER TABLE discipline_records ADD COLUMN severity VARCHAR(20);
-        UPDATE discipline_records SET severity = 'light' WHERE type = 'reward';
-        UPDATE discipline_records SET severity = 'medium' WHERE type = 'punishment';
-        ALTER TABLE discipline_records ALTER COLUMN severity SET NOT NULL;
-    END IF;
-END $$;
-
--- Create enum type for severity
+-- 3. Create enum type for severity (if it doesn't exist)
 DO $$ 
 BEGIN
     CREATE TYPE misconduct_severity AS ENUM ('light', 'medium');
@@ -38,15 +27,24 @@ EXCEPTION
     WHEN duplicate_object THEN NULL;
 END $$;
 
--- Convert severity column to enum type
+-- 4. Add severity column to discipline_records (if it doesn't exist)
 DO $$ 
 BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'discipline_records' AND column_name = 'severity' AND data_type = 'character varying') THEN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'discipline_records' AND column_name = 'severity') THEN
+        ALTER TABLE discipline_records ADD COLUMN severity VARCHAR(20);
+        
+        -- Migrate data based on type enum (cast to text for comparison)
+        UPDATE discipline_records SET severity = 'light' WHERE type::text = 'reward';
+        UPDATE discipline_records SET severity = 'medium' WHERE type::text = 'punishment';
+        
+        ALTER TABLE discipline_records ALTER COLUMN severity SET NOT NULL;
+        
+        -- Convert to enum type
         ALTER TABLE discipline_records ALTER COLUMN severity TYPE misconduct_severity USING severity::misconduct_severity;
     END IF;
 END $$;
 
--- 4. Add misconduct_type column
+-- 5. Add misconduct_type column
 DO $$ 
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'discipline_records' AND column_name = 'misconduct_type') THEN
@@ -61,7 +59,7 @@ BEGIN
     END IF;
 END $$;
 
--- 5. Rename reason to notes
+-- 6. Rename reason to notes
 DO $$ 
 BEGIN
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'discipline_records' AND column_name = 'reason') 
@@ -70,14 +68,22 @@ BEGIN
     END IF;
 END $$;
 
--- 6. Drop old columns from discipline_records
+-- 7. Drop old columns from discipline_records
 ALTER TABLE discipline_records DROP COLUMN IF EXISTS type;
 ALTER TABLE discipline_records DROP COLUMN IF EXISTS points_change;
 
--- 7. Drop student_points table
+-- 8. Drop old enum type if it exists (cleanup)
+DO $$ 
+BEGIN
+    DROP TYPE IF EXISTS disciplinetype CASCADE;
+EXCEPTION
+    WHEN undefined_object THEN NULL;
+END $$;
+
+-- 9. Drop student_points table
 DROP TABLE IF EXISTS student_points CASCADE;
 
--- 8. Create indexes
+-- 10. Create indexes
 DROP INDEX IF EXISTS idx_student_standard;
 CREATE INDEX IF NOT EXISTS idx_student_form ON students(form);
 CREATE INDEX IF NOT EXISTS idx_discipline_severity ON discipline_records(severity);
