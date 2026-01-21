@@ -6,7 +6,7 @@ Handles discipline record creation and misconduct statistics.
 from typing import Optional, List, Dict
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, cast, String
 from loguru import logger
 
 from app.models import Student, DisciplineRecord
@@ -48,7 +48,7 @@ class DisciplineService:
         if not student:
             raise ValueError(f"Student with id {student_id} not found")
         
-        # Create discipline record
+        # Create discipline record - ensure lowercase
         discipline_record = DisciplineRecord(
             student_id=student_id,
             teacher_id=teacher_id,
@@ -84,18 +84,18 @@ class DisciplineService:
         now = datetime.utcnow()
         month_start = datetime(now.year, now.month, 1)
         
-        # Query all records for student - use string literals for enum comparison
+        # Query all records for student - cast enum column to string for comparison
         light_total = db.query(func.count(DisciplineRecord.id)).filter(
             and_(
                 DisciplineRecord.student_id == student_id,
-                DisciplineRecord.severity == "light"
+                cast(DisciplineRecord.severity, String) == "light"
             )
         ).scalar() or 0
         
         medium_total = db.query(func.count(DisciplineRecord.id)).filter(
             and_(
                 DisciplineRecord.student_id == student_id,
-                DisciplineRecord.severity == "medium"
+                cast(DisciplineRecord.severity, String) == "medium"
             )
         ).scalar() or 0
         
@@ -103,7 +103,7 @@ class DisciplineService:
         light_monthly = db.query(func.count(DisciplineRecord.id)).filter(
             and_(
                 DisciplineRecord.student_id == student_id,
-                DisciplineRecord.severity == "light",
+                cast(DisciplineRecord.severity, String) == "light",
                 DisciplineRecord.created_at >= month_start
             )
         ).scalar() or 0
@@ -111,7 +111,7 @@ class DisciplineService:
         medium_monthly = db.query(func.count(DisciplineRecord.id)).filter(
             and_(
                 DisciplineRecord.student_id == student_id,
-                DisciplineRecord.severity == "medium",
+                cast(DisciplineRecord.severity, String) == "medium",
                 DisciplineRecord.created_at >= month_start
             )
         ).scalar() or 0
@@ -152,18 +152,18 @@ class DisciplineService:
                 "medium_monthly": 0
             }
         
-        # Total counts - use enum values
+        # Total counts - cast enum column to string for comparison
         light_total = db.query(func.count(DisciplineRecord.id)).filter(
             and_(
                 DisciplineRecord.student_id.in_(student_ids),
-                DisciplineRecord.severity == MisconductSeverity.LIGHT.value
+                cast(DisciplineRecord.severity, String) == "light"
             )
         ).scalar() or 0
         
         medium_total = db.query(func.count(DisciplineRecord.id)).filter(
             and_(
                 DisciplineRecord.student_id.in_(student_ids),
-                DisciplineRecord.severity == MisconductSeverity.MEDIUM.value
+                cast(DisciplineRecord.severity, String) == "medium"
             )
         ).scalar() or 0
         
@@ -171,7 +171,7 @@ class DisciplineService:
         light_monthly = db.query(func.count(DisciplineRecord.id)).filter(
             and_(
                 DisciplineRecord.student_id.in_(student_ids),
-                DisciplineRecord.severity == MisconductSeverity.LIGHT.value,
+                cast(DisciplineRecord.severity, String) == "light",
                 DisciplineRecord.created_at >= month_start
             )
         ).scalar() or 0
@@ -179,7 +179,7 @@ class DisciplineService:
         medium_monthly = db.query(func.count(DisciplineRecord.id)).filter(
             and_(
                 DisciplineRecord.student_id.in_(student_ids),
-                DisciplineRecord.severity == MisconductSeverity.MEDIUM.value,
+                cast(DisciplineRecord.severity, String) == "medium",
                 DisciplineRecord.created_at >= month_start
             )
         ).scalar() or 0
@@ -226,18 +226,18 @@ class DisciplineService:
         # Get form from first student
         form = students[0].form if students else 0
         
-        # Total counts - use string literals for enum comparison
+        # Total counts - cast enum column to string for comparison
         light_total = db.query(func.count(DisciplineRecord.id)).filter(
             and_(
                 DisciplineRecord.student_id.in_(student_ids),
-                DisciplineRecord.severity == "light"
+                cast(DisciplineRecord.severity, String) == "light"
             )
         ).scalar() or 0
         
         medium_total = db.query(func.count(DisciplineRecord.id)).filter(
             and_(
                 DisciplineRecord.student_id.in_(student_ids),
-                DisciplineRecord.severity == "medium"
+                cast(DisciplineRecord.severity, String) == "medium"
             )
         ).scalar() or 0
         
@@ -245,7 +245,7 @@ class DisciplineService:
         light_monthly = db.query(func.count(DisciplineRecord.id)).filter(
             and_(
                 DisciplineRecord.student_id.in_(student_ids),
-                DisciplineRecord.severity == "light",
+                cast(DisciplineRecord.severity, String) == "light",
                 DisciplineRecord.created_at >= month_start
             )
         ).scalar() or 0
@@ -253,7 +253,7 @@ class DisciplineService:
         medium_monthly = db.query(func.count(DisciplineRecord.id)).filter(
             and_(
                 DisciplineRecord.student_id.in_(student_ids),
-                DisciplineRecord.severity == "medium",
+                cast(DisciplineRecord.severity, String) == "medium",
                 DisciplineRecord.created_at >= month_start
             )
         ).scalar() or 0
@@ -292,7 +292,7 @@ class DisciplineService:
             
             light_count = db.query(func.count(DisciplineRecord.id)).filter(
                 and_(
-                    DisciplineRecord.severity == "light",
+                    cast(DisciplineRecord.severity, String) == "light",
                     DisciplineRecord.created_at >= day_start,
                     DisciplineRecord.created_at < day_end
                 )
@@ -300,7 +300,7 @@ class DisciplineService:
             
             medium_count = db.query(func.count(DisciplineRecord.id)).filter(
                 and_(
-                    DisciplineRecord.severity == "medium",
+                    cast(DisciplineRecord.severity, String) == "medium",
                     DisciplineRecord.created_at >= day_start,
                     DisciplineRecord.created_at < day_end
                 )
