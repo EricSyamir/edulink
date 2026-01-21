@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Webcam from 'react-webcam'
 import { studentApi, disciplineApi } from '../services/api'
@@ -17,6 +18,7 @@ import clsx from 'clsx'
 import MisconductBadge from '../components/MisconductBadge'
 
 export default function ScanPage() {
+  const navigate = useNavigate()
   const webcamRef = useRef(null)
   const queryClient = useQueryClient()
   
@@ -59,28 +61,22 @@ export default function ScanPage() {
   const disciplineMutation = useMutation({
     mutationFn: disciplineApi.create,
     onSuccess: (data) => {
-      // Update local student state with new misconduct
-      setIdentifiedStudent(prev => ({
-        ...prev,
-        misconduct_stats: {
-          ...prev.misconduct_stats,
-          [`${data.severity}_total`]: (prev.misconduct_stats?.[`${data.severity}_total`] || 0) + 1,
-          [`${data.severity}_monthly`]: (prev.misconduct_stats?.[`${data.severity}_monthly`] || 0) + 1,
-        }
-      }))
-      
       // Invalidate queries to refresh data
       queryClient.invalidateQueries(['students'])
       queryClient.invalidateQueries(['analytics'])
+      queryClient.invalidateQueries(['student', identifiedStudent.id])
       
       toast.success(
-        `${data.severity === 'light' ? 'Light' : 'Medium'} misconduct recorded: ${data.misconduct_type}`
+        `${data.severity === 'light' ? 'Light' : 'Medium'} misconduct recorded: ${data.misconduct_type}`,
+        {
+          duration: 2000,
+        }
       )
       
-      // Reset form
-      setSeverity('')
-      setMisconductType('')
-      setNotes('')
+      // Navigate to student profile page after a short delay
+      setTimeout(() => {
+        navigate(`/students/${identifiedStudent.id}`)
+      }, 500)
     },
     onError: (error) => {
       toast.error(error.response?.data?.detail || 'Failed to record misconduct')
