@@ -14,6 +14,7 @@ import {
   TrendingUp
 } from 'lucide-react'
 import clsx from 'clsx'
+import DistributionBars from '../components/DistributionBars'
 
 export default function FormsPage() {
   const navigate = useNavigate()
@@ -35,8 +36,18 @@ export default function FormsPage() {
   
   // Handle print
   const handlePrint = () => {
+    document.body.classList.add('printing-report')
     window.print()
+    setTimeout(() => document.body.classList.remove('printing-report'), 300)
   }
+
+  const formDistribution = formStats.map((s) => ({
+    key: `form-${s.form}`,
+    label: `Form ${s.form}`,
+    meta: `${s.total_students} students`,
+    light: s.light_misconducts || 0,
+    medium: s.medium_misconducts || 0,
+  }))
   
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-fade-in">
@@ -53,6 +64,29 @@ export default function FormsPage() {
           <Printer className="w-5 h-5" />
           Print Report
         </button>
+      </div>
+
+      <div className="print-area">
+        <div className="hidden print:block mb-4">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold">EduLink BErCHAMPION</h1>
+            <p className="text-sm text-surface-600">Forms Misconduct Distribution Report</p>
+            <p className="text-xs text-surface-500">
+              Generated: {new Date().toLocaleString()}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-surface-700 mb-2 no-print">
+          <BarChart3 className="w-5 h-5 text-primary-600" />
+          <span className="font-medium">Distribution Dashboard</span>
+        </div>
+        <DistributionBars
+          title="Distribution of Misconducts by Forms"
+          subtitle="Stacked light vs medium counts"
+          items={formDistribution}
+          maxItems={5}
+        />
       </div>
       
       {/* Form Cards */}

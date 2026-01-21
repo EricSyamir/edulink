@@ -10,9 +10,11 @@ import {
   AlertCircle,
   AlertTriangle,
   Filter,
+  BarChart3,
   Printer
 } from 'lucide-react'
 import clsx from 'clsx'
+import DistributionBars from '../components/DistributionBars'
 
 export default function ClassesPage() {
   const navigate = useNavigate()
@@ -35,7 +37,9 @@ export default function ClassesPage() {
   
   // Handle print
   const handlePrint = () => {
+    document.body.classList.add('printing-report')
     window.print()
+    setTimeout(() => document.body.classList.remove('printing-report'), 300)
   }
   
   // Group classes by form
@@ -45,6 +49,14 @@ export default function ClassesPage() {
     acc[form].push(stat)
     return acc
   }, {})
+
+  const classDistribution = classStats.map((s) => ({
+    key: `${s.class_name}-${s.form}`,
+    label: s.class_name,
+    meta: `Form ${s.form} • ${s.total_students} students`,
+    light: s.light_misconducts || 0,
+    medium: s.medium_misconducts || 0,
+  }))
   
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-fade-in">
@@ -74,6 +86,32 @@ export default function ClassesPage() {
             Print Report
           </button>
         </div>
+      </div>
+
+      <div className="print-area">
+        <div className="hidden print:block mb-4">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold">EduLink BErCHAMPION</h1>
+            <p className="text-sm text-surface-600">Classes Misconduct Distribution Report</p>
+            <p className="text-xs text-surface-500">
+              Generated: {new Date().toLocaleString()}
+            </p>
+          </div>
+          <div className="mt-3 text-xs text-surface-600">
+            Filter: {formFilter ? `Form ${formFilter}` : 'All Forms'}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-surface-700 mb-2 no-print">
+          <BarChart3 className="w-5 h-5 text-primary-600" />
+          <span className="font-medium">Distribution Dashboard</span>
+        </div>
+        <DistributionBars
+          title="Distribution of Misconducts by Classes"
+          subtitle="Stacked light vs medium counts (top classes)"
+          items={classDistribution}
+          maxItems={12}
+        />
       </div>
       
       {/* Classes by Form */}

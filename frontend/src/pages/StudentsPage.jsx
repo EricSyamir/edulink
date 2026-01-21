@@ -10,10 +10,13 @@ import {
   Users,
   Filter,
   Camera,
-  CameraOff
+  CameraOff,
+  Printer,
+  BarChart3
 } from 'lucide-react'
 import clsx from 'clsx'
 import MisconductBadge from '../components/MisconductBadge'
+import DistributionBars from '../components/DistributionBars'
 
 export default function StudentsPage() {
   const navigate = useNavigate()
@@ -36,8 +39,22 @@ export default function StudentsPage() {
   // Get unique classes for filter dropdown
   const uniqueClasses = [...new Set(students.map(s => s.class_name))].sort()
   
+  const studentDistribution = students.map((s) => ({
+    key: s.id,
+    label: s.name,
+    meta: `${s.student_id} • ${s.class_name} • Form ${s.form}`,
+    light: s.misconduct_stats?.light_total || 0,
+    medium: s.misconduct_stats?.medium_total || 0,
+  }))
+
   const handleSearch = (e) => {
     e.preventDefault()
+  }
+
+  const handlePrintDashboard = () => {
+    document.body.classList.add('printing-report')
+    window.print()
+    setTimeout(() => document.body.classList.remove('printing-report'), 300)
   }
   
   return (
@@ -51,14 +68,49 @@ export default function StudentsPage() {
           </p>
         </div>
         
-        <Link to="/students/add" className="btn-primary">
-          <UserPlus className="w-5 h-5" />
-          Add Student
-        </Link>
+        <div className="flex gap-3 no-print">
+          <button onClick={handlePrintDashboard} className="btn-secondary">
+            <Printer className="w-5 h-5" />
+            Print Report
+          </button>
+          <Link to="/students/add" className="btn-primary">
+            <UserPlus className="w-5 h-5" />
+            Add Student
+          </Link>
+        </div>
+      </div>
+
+      {/* Students dashboard (distribution) */}
+      <div className="print-area">
+        <div className="hidden print:block mb-4">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold">EduLink BErCHAMPION</h1>
+            <p className="text-sm text-surface-600">Students Misconduct Distribution Report</p>
+            <p className="text-xs text-surface-500">
+              Generated: {new Date().toLocaleString()}
+            </p>
+          </div>
+          <div className="mt-3 text-xs text-surface-600">
+            Filters: {searchQuery ? `Search="${searchQuery}"` : 'Search=All'} •{' '}
+            {classFilter ? `Class=${classFilter}` : 'Class=All'} •{' '}
+            {formFilter ? `Form=${formFilter}` : 'Form=All'}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-surface-700 mb-2 no-print">
+          <BarChart3 className="w-5 h-5 text-primary-600" />
+          <span className="font-medium">Distribution Dashboard</span>
+        </div>
+        <DistributionBars
+          title="Distribution of Misconducts by Students"
+          subtitle="Stacked light vs medium counts (top offenders)"
+          items={studentDistribution}
+          maxItems={10}
+        />
       </div>
       
       {/* Search and Filters */}
-      <div className="card p-4">
+      <div className="card p-4 no-print">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <form onSubmit={handleSearch} className="relative flex-1">
@@ -99,7 +151,7 @@ export default function StudentsPage() {
       </div>
       
       {/* Results count */}
-      <div className="flex items-center justify-between text-sm text-surface-500">
+      <div className="flex items-center justify-between text-sm text-surface-500 no-print">
         <p>{students.length} student{students.length !== 1 ? 's' : ''} found</p>
         {(searchQuery || classFilter || formFilter) && (
           <button
@@ -116,7 +168,7 @@ export default function StudentsPage() {
       </div>
       
       {/* Student List */}
-      <div className="card overflow-hidden">
+      <div className="card overflow-hidden no-print">
         {isLoading ? (
           <div className="p-12 text-center">
             <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" />

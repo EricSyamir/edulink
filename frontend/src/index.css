@@ -148,6 +148,21 @@
     display: none !important;
   }
   
+  /* Print only a specific section when present */
+  body.printing-report * {
+    visibility: hidden !important;
+  }
+  body.printing-report .print-area,
+  body.printing-report .print-area * {
+    visibility: visible !important;
+  }
+  body.printing-report .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
   .print-break {
     page-break-after: always;
   }
