@@ -19,7 +19,7 @@ class MisconductSeverity(str, enum.Enum):
 
 class MisconductSeverityEnum(TypeDecorator):
     """Type decorator to ensure enum values are used, not names."""
-    impl = Enum(MisconductSeverity, native_enum=True, create_type=False)
+    impl = String
     cache_ok = True
     
     def process_bind_param(self, value, dialect):
@@ -28,6 +28,8 @@ class MisconductSeverityEnum(TypeDecorator):
             return None
         if isinstance(value, MisconductSeverity):
             return value.value  # Return the enum value, not the name
+        if isinstance(value, str):
+            return value.lower()  # Ensure lowercase
         return value
     
     def process_result_value(self, value, dialect):
@@ -37,6 +39,12 @@ class MisconductSeverityEnum(TypeDecorator):
         if isinstance(value, str):
             return MisconductSeverity(value)
         return value
+    
+    def load_dialect_impl(self, dialect):
+        """Use PostgreSQL enum type for PostgreSQL dialect."""
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(Enum(MisconductSeverity, native_enum=True, create_type=False))
+        return dialect.type_descriptor(String())
 
 
 class LightMisconductType(str, enum.Enum):
