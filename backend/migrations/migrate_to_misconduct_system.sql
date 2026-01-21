@@ -58,21 +58,13 @@ BEGIN
             SELECT 1 FROM information_schema.columns 
             WHERE table_name = 'discipline_records' AND column_name = 'severity'
         ) THEN
-            -- Add severity column
+            -- Add severity column as VARCHAR (not enum to avoid SQLAlchemy issues)
             ALTER TABLE discipline_records ADD COLUMN severity VARCHAR(20);
             -- Migrate data: rewards -> light, punishments -> medium
             UPDATE discipline_records SET severity = 'light' WHERE type = 'reward';
             UPDATE discipline_records SET severity = 'medium' WHERE type = 'punishment';
             -- Make it NOT NULL after migration
             ALTER TABLE discipline_records ALTER COLUMN severity SET NOT NULL;
-            -- Create enum type if it doesn't exist
-            DO $$ BEGIN
-                CREATE TYPE misconduct_severity AS ENUM ('light', 'medium');
-            EXCEPTION
-                WHEN duplicate_object THEN null;
-            END $$;
-            -- Change column type to enum
-            ALTER TABLE discipline_records ALTER COLUMN severity TYPE misconduct_severity USING severity::misconduct_severity;
         END IF;
         
         -- Add misconduct_type column
@@ -113,19 +105,35 @@ BEGIN
 END $$;
 
 -- ============================================
--- 4. DROP STUDENT_POINTS TABLE
+-- 4. CONVERT SEVERITY FROM ENUM TO VARCHAR (if needed)
+-- Fixes SQLAlchemy serialization issues
+-- ============================================
+DO $$ 
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'discipline_records' 
+        AND column_name = 'severity' 
+        AND data_type = 'USER-DEFINED'
+    ) THEN
+        ALTER TABLE discipline_records ALTER COLUMN severity TYPE VARCHAR(20) USING severity::text;
+    END IF;
+END $$;
+
+-- ============================================
+-- 5. DROP STUDENT_POINTS TABLE
 -- No longer needed with misconduct system
 -- ============================================
 DROP TABLE IF EXISTS student_points CASCADE;
 
 -- ============================================
--- 5. DROP OLD TRIGGERS (if they exist)
+-- 6. DROP OLD TRIGGERS (if they exist)
 -- ============================================
 DROP TRIGGER IF EXISTS after_discipline_insert ON discipline_records;
 DROP FUNCTION IF EXISTS update_student_points() CASCADE;
 
 -- ============================================
--- 6. VERIFY MIGRATION
+-- 7. VERIFY MIGRATION
 -- ============================================
 DO $$ 
 BEGIN

@@ -2,12 +2,7 @@
 -- Creates all required tables for the discipline tracking system
 -- Compatible with PostgreSQL 12+
 
--- Create enum types
-DO $$ BEGIN
-    CREATE TYPE misconduct_severity AS ENUM ('light', 'medium');
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
+-- Note: Using VARCHAR instead of enum for severity to avoid SQLAlchemy serialization issues
 
 -- ============================================
 -- STUDENTS TABLE
@@ -80,7 +75,7 @@ CREATE TABLE IF NOT EXISTS discipline_records (
     id SERIAL PRIMARY KEY,
     student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     teacher_id INTEGER REFERENCES teachers(id) ON DELETE SET NULL,
-    severity misconduct_severity NOT NULL,
+    severity VARCHAR(20) NOT NULL CHECK (severity IN ('light', 'medium')),
     misconduct_type VARCHAR(100) NOT NULL,
     notes TEXT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
