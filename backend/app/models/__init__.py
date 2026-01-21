@@ -1,12 +1,21 @@
 """
-Database Models Package
-Exports all SQLAlchemy ORM models.
+Database Models
 """
 
-# Use relative imports to avoid circular import issues
-from .student import Student
-from .teacher import Teacher
-from .discipline_record import DisciplineRecord
-from .student_points import StudentPoints
+from app.models.student import Student
+from app.models.teacher import Teacher
+from app.models.discipline_record import (
+    DisciplineRecord, 
+    MisconductSeverity, 
+    LightMisconductType, 
+    MediumMisconductType
+)
 
-__all__ = ["Student", "Teacher", "DisciplineRecord", "StudentPoints"]
+__all__ = [
+    "Student",
+    "Teacher", 
+    "DisciplineRecord",
+    "MisconductSeverity",
+    "LightMisconductType",
+    "MediumMisconductType"
+]

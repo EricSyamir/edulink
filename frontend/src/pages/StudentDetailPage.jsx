@@ -8,18 +8,19 @@ import {
   Edit, 
   Trash2, 
   Loader2,
-  Award,
+  AlertCircle,
   AlertTriangle,
   Calendar,
   User,
   School,
   Camera,
   CameraOff,
-  History
+  History,
+  Printer
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
-import PointsBadge from '../components/PointsBadge'
+import { MisconductStats } from '../components/MisconductBadge'
 
 export default function StudentDetailPage() {
   const { id } = useParams()
@@ -52,6 +53,11 @@ export default function StudentDetailPage() {
     },
   })
   
+  // Print handler
+  const handlePrint = () => {
+    window.print()
+  }
+  
   if (studentLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -74,15 +80,19 @@ export default function StudentDetailPage() {
   }
   
   // Calculate stats from history
-  const totalRewards = disciplineHistory.filter(r => r.type === 'reward').length
-  const totalPunishments = disciplineHistory.filter(r => r.type === 'punishment').length
+  const totalLight = disciplineHistory.filter(r => r.severity === 'light').length
+  const totalMedium = disciplineHistory.filter(r => r.severity === 'medium').length
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const monthlyLight = disciplineHistory.filter(r => r.severity === 'light' && new Date(r.created_at) >= monthStart).length
+  const monthlyMedium = disciplineHistory.filter(r => r.severity === 'medium' && new Date(r.created_at) >= monthStart).length
   
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
       {/* Back button */}
       <Link 
         to="/students" 
-        className="inline-flex items-center gap-2 text-surface-600 hover:text-surface-900 transition-colors"
+        className="inline-flex items-center gap-2 text-surface-600 hover:text-surface-900 transition-colors no-print"
       >
         <ArrowLeft className="w-5 h-5" />
         Back to Students
@@ -108,7 +118,7 @@ export default function StudentDetailPage() {
                 </span>
                 <span className="flex items-center gap-1">
                   <User className="w-4 h-4" />
-                  Standard {student.standard}
+                  Form {student.form}
                 </span>
                 <span className="flex items-center gap-1">
                   {student.has_face_embedding ? (
@@ -126,24 +136,30 @@ export default function StudentDetailPage() {
               </div>
             </div>
             
-            {/* Points */}
+            {/* Total Misconducts */}
             <div className="bg-white rounded-2xl p-5 text-center">
-              <p className="text-sm text-surface-500 font-medium">Sahsiah Points</p>
+              <p className="text-sm text-surface-500 font-medium">Total Misconducts</p>
               <p className={clsx(
                 'text-4xl font-bold mt-1',
-                student.current_points >= 100 ? 'text-emerald-600' :
-                student.current_points >= 70 ? 'text-primary-600' :
-                student.current_points >= 50 ? 'text-amber-600' :
+                (totalLight + totalMedium) === 0 ? 'text-emerald-600' :
+                (totalLight + totalMedium) <= 3 ? 'text-amber-600' :
                 'text-red-600'
               )}>
-                {student.current_points}
+                {totalLight + totalMedium}
               </p>
             </div>
           </div>
         </div>
         
         {/* Actions */}
-        <div className="p-4 bg-surface-50 flex flex-wrap gap-3 justify-end border-t border-surface-200">
+        <div className="p-4 bg-surface-50 flex flex-wrap gap-3 justify-end border-t border-surface-200 no-print">
+          <button
+            onClick={handlePrint}
+            className="btn-secondary"
+          >
+            <Printer className="w-4 h-4" />
+            Print Report
+          </button>
           <Link
             to={`/students/${id}/edit`}
             className="btn-secondary"
@@ -164,37 +180,35 @@ export default function StudentDetailPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="card p-5">
-          <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center mb-3">
-            <Award className="w-5 h-5 text-emerald-600" />
-          </div>
-          <p className="text-2xl font-bold text-surface-900">{totalRewards}</p>
-          <p className="text-sm text-surface-500">Total Rewards</p>
-        </div>
-        
-        <div className="card p-5">
-          <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center mb-3">
-            <AlertTriangle className="w-5 h-5 text-red-600" />
-          </div>
-          <p className="text-2xl font-bold text-surface-900">{totalPunishments}</p>
-          <p className="text-sm text-surface-500">Total Punishments</p>
-        </div>
-        
-        <div className="card p-5">
-          <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center mb-3">
-            <History className="w-5 h-5 text-primary-600" />
-          </div>
-          <p className="text-2xl font-bold text-surface-900">{disciplineHistory.length}</p>
-          <p className="text-sm text-surface-500">Total Records</p>
-        </div>
-        
-        <div className="card p-5">
           <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center mb-3">
-            <Calendar className="w-5 h-5 text-blue-600" />
+            <AlertCircle className="w-5 h-5 text-blue-600" />
           </div>
-          <p className="text-2xl font-bold text-surface-900">
-            {format(new Date(student.created_at), 'MMM d')}
-          </p>
-          <p className="text-sm text-surface-500">Registered</p>
+          <p className="text-2xl font-bold text-surface-900">{totalLight}</p>
+          <p className="text-sm text-surface-500">Light Misconducts</p>
+        </div>
+        
+        <div className="card p-5">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center mb-3">
+            <Calendar className="w-5 h-5 text-blue-500" />
+          </div>
+          <p className="text-2xl font-bold text-surface-900">{monthlyLight}</p>
+          <p className="text-sm text-surface-500">Monthly Light</p>
+        </div>
+        
+        <div className="card p-5">
+          <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center mb-3">
+            <AlertTriangle className="w-5 h-5 text-orange-600" />
+          </div>
+          <p className="text-2xl font-bold text-surface-900">{totalMedium}</p>
+          <p className="text-sm text-surface-500">Medium Misconducts</p>
+        </div>
+        
+        <div className="card p-5">
+          <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center mb-3">
+            <Calendar className="w-5 h-5 text-orange-500" />
+          </div>
+          <p className="text-2xl font-bold text-surface-900">{monthlyMedium}</p>
+          <p className="text-sm text-surface-500">Monthly Medium</p>
         </div>
       </div>
       
@@ -226,12 +240,12 @@ export default function StudentDetailPage() {
                 {/* Icon */}
                 <div className={clsx(
                   'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0',
-                  record.type === 'reward' 
-                    ? 'bg-emerald-100 text-emerald-600' 
-                    : 'bg-red-100 text-red-600'
+                  record.severity === 'light' 
+                    ? 'bg-blue-100 text-blue-600' 
+                    : 'bg-orange-100 text-orange-600'
                 )}>
-                  {record.type === 'reward' ? (
-                    <Award className="w-5 h-5" />
+                  {record.severity === 'light' ? (
+                    <AlertCircle className="w-5 h-5" />
                   ) : (
                     <AlertTriangle className="w-5 h-5" />
                   )}
@@ -241,16 +255,15 @@ export default function StudentDetailPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className={clsx(
-                      'font-semibold',
-                      record.type === 'reward' ? 'text-emerald-600' : 'text-red-600'
+                      'font-semibold capitalize',
+                      record.severity === 'light' ? 'text-blue-600' : 'text-orange-600'
                     )}>
-                      {record.type === 'reward' ? '+' : ''}{record.points_change} points
+                      {record.severity} Misconduct
                     </span>
-                    <span className="text-surface-400">•</span>
-                    <span className="text-sm text-surface-500 capitalize">{record.type}</span>
                   </div>
-                  {record.reason && (
-                    <p className="text-surface-700 mt-1">{record.reason}</p>
+                  <p className="text-surface-700 mt-1 font-medium">{record.misconduct_type}</p>
+                  {record.notes && (
+                    <p className="text-surface-600 mt-1 text-sm">{record.notes}</p>
                   )}
                   <p className="text-sm text-surface-400 mt-1">
                     By {record.teacher_name} on {format(new Date(record.created_at), 'MMM d, yyyy h:mm a')}
@@ -264,7 +277,7 @@ export default function StudentDetailPage() {
       
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 no-print">
           <div className="card p-6 max-w-md w-full animate-scale-in">
             <h3 className="text-xl font-semibold text-surface-900">Delete Student?</h3>
             <p className="text-surface-600 mt-2">

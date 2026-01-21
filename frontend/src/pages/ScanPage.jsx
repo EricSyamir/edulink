@@ -1,21 +1,20 @@
-import { useState, useRef, useCallback } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Webcam from 'react-webcam'
 import { studentApi, disciplineApi } from '../services/api'
 import { 
   Camera, 
   RotateCcw, 
-  Award, 
+  AlertCircle,
   AlertTriangle,
   Loader2,
   CheckCircle2,
   XCircle,
-  User,
-  Sparkles
+  User
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
-import PointsBadge from '../components/PointsBadge'
+import MisconductBadge from '../components/MisconductBadge'
 
 export default function ScanPage() {
   const webcamRef = useRef(null)
@@ -24,8 +23,17 @@ export default function ScanPage() {
   const [capturedImage, setCapturedImage] = useState(null)
   const [identifiedStudent, setIdentifiedStudent] = useState(null)
   const [matchConfidence, setMatchConfidence] = useState(null)
-  const [reason, setReason] = useState('')
+  const [severity, setSeverity] = useState('')
+  const [misconductType, setMisconductType] = useState('')
+  const [notes, setNotes] = useState('')
   const [facingMode, setFacingMode] = useState('user') // 'user' for front, 'environment' for back
+  
+  // Fetch misconduct types
+  const { data: misconductTypes } = useQuery({
+    queryKey: ['misconduct-types'],
+    queryFn: () => disciplineApi.getTypes(),
+    staleTime: Infinity, // These don't change
+  })
   
   // Face identification mutation
   const identifyMutation = useMutation({
@@ -51,27 +59,38 @@ export default function ScanPage() {
   const disciplineMutation = useMutation({
     mutationFn: disciplineApi.create,
     onSuccess: (data) => {
-      // Update local student state with new points
+      // Update local student state with new misconduct
       setIdentifiedStudent(prev => ({
         ...prev,
-        current_points: prev.current_points + data.points_change
+        misconduct_stats: {
+          ...prev.misconduct_stats,
+          [`${data.severity}_total`]: (prev.misconduct_stats?.[`${data.severity}_total`] || 0) + 1,
+          [`${data.severity}_monthly`]: (prev.misconduct_stats?.[`${data.severity}_monthly`] || 0) + 1,
+        }
       }))
       
       // Invalidate queries to refresh data
       queryClient.invalidateQueries(['students'])
+      queryClient.invalidateQueries(['analytics'])
       
       toast.success(
-        data.type === 'reward' 
-          ? `Reward added! +${data.points_change} points`
-          : `Punishment recorded. ${data.points_change} points`
+        `${data.severity === 'light' ? 'Light' : 'Medium'} misconduct recorded: ${data.misconduct_type}`
       )
       
-      setReason('')
+      // Reset form
+      setSeverity('')
+      setMisconductType('')
+      setNotes('')
     },
     onError: (error) => {
-      toast.error(error.response?.data?.detail || 'Failed to record discipline')
+      toast.error(error.response?.data?.detail || 'Failed to record misconduct')
     },
   })
+  
+  // Reset misconduct type when severity changes
+  useEffect(() => {
+    setMisconductType('')
+  }, [severity])
   
   // Capture image from webcam
   const captureImage = useCallback(() => {
@@ -80,6 +99,9 @@ export default function ScanPage() {
       setCapturedImage(imageSrc)
       setIdentifiedStudent(null)
       setMatchConfidence(null)
+      setSeverity('')
+      setMisconductType('')
+      setNotes('')
       
       // Automatically identify
       identifyMutation.mutate(imageSrc)
@@ -91,7 +113,9 @@ export default function ScanPage() {
     setCapturedImage(null)
     setIdentifiedStudent(null)
     setMatchConfidence(null)
-    setReason('')
+    setSeverity('')
+    setMisconductType('')
+    setNotes('')
   }
   
   // Toggle camera facing mode
@@ -99,16 +123,24 @@ export default function ScanPage() {
     setFacingMode(prev => prev === 'user' ? 'environment' : 'user')
   }
   
-  // Handle reward/punishment
-  const handleDiscipline = (type) => {
-    if (!identifiedStudent) return
+  // Handle misconduct recording
+  const handleRecordMisconduct = () => {
+    if (!identifiedStudent || !severity || !misconductType) return
     
     disciplineMutation.mutate({
       student_id: identifiedStudent.id,
-      type,
-      reason: reason.trim() || undefined,
+      severity,
+      misconduct_type: misconductType,
+      notes: notes.trim() || undefined,
     })
   }
+  
+  // Get available misconduct types based on severity
+  const availableTypes = severity === 'light' 
+    ? (misconductTypes?.light || [])
+    : severity === 'medium'
+    ? (misconductTypes?.medium || [])
+    : []
   
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
@@ -116,7 +148,7 @@ export default function ScanPage() {
       <div className="text-center">
         <h1 className="font-display text-3xl font-bold text-surface-900">Scan Student</h1>
         <p className="text-surface-500 mt-1">
-          Capture a photo to identify student and record discipline
+          Capture a photo to identify student and record misconduct
         </p>
       </div>
       
@@ -222,58 +254,119 @@ export default function ScanPage() {
                       {identifiedStudent.name}
                     </h3>
                     <p className="text-surface-500">
-                      {identifiedStudent.student_id} • {identifiedStudent.class_name} • Standard {identifiedStudent.standard}
+                      {identifiedStudent.student_id} • {identifiedStudent.class_name} • Form {identifiedStudent.form}
                     </p>
                   </div>
-                  <PointsBadge points={identifiedStudent.current_points} size="lg" />
+                  <MisconductBadge 
+                    light={identifiedStudent.misconduct_stats?.light_total || 0}
+                    medium={identifiedStudent.misconduct_stats?.medium_total || 0}
+                    size="lg"
+                  />
                 </div>
               </div>
               
-              {/* Discipline actions */}
+              {/* Misconduct recording */}
               <div className="p-6 space-y-4">
+                <h4 className="font-semibold text-surface-900">Record Misconduct</h4>
+                
+                {/* Severity Selection */}
                 <div>
                   <label className="block text-sm font-medium text-surface-700 mb-2">
-                    Reason (optional)
+                    Misconduct Severity *
                   </label>
-                  <textarea
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    placeholder="Enter reason for reward or punishment..."
-                    className="input min-h-[100px] resize-none"
-                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSeverity('light')}
+                      className={clsx(
+                        'p-4 rounded-xl border-2 transition-all flex items-center justify-center gap-2',
+                        severity === 'light'
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-surface-200 hover:border-blue-300 text-surface-600'
+                      )}
+                    >
+                      <AlertCircle className="w-5 h-5" />
+                      Light
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSeverity('medium')}
+                      className={clsx(
+                        'p-4 rounded-xl border-2 transition-all flex items-center justify-center gap-2',
+                        severity === 'medium'
+                          ? 'border-orange-500 bg-orange-50 text-orange-700'
+                          : 'border-surface-200 hover:border-orange-300 text-surface-600'
+                      )}
+                    >
+                      <AlertTriangle className="w-5 h-5" />
+                      Medium
+                    </button>
+                  </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    onClick={() => handleDiscipline('reward')}
-                    disabled={disciplineMutation.isPending}
-                    className="btn-success py-4 text-lg"
-                  >
-                    {disciplineMutation.isPending ? (
+                {/* Misconduct Type Selection */}
+                {severity && (
+                  <div className="animate-fade-in">
+                    <label className="block text-sm font-medium text-surface-700 mb-2">
+                      Type of Misconduct *
+                    </label>
+                    <select
+                      value={misconductType}
+                      onChange={(e) => setMisconductType(e.target.value)}
+                      className="input"
+                    >
+                      <option value="">Select misconduct type...</option>
+                      {availableTypes.map(type => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                
+                {/* Notes */}
+                {severity && misconductType && (
+                  <div className="animate-fade-in">
+                    <label className="block text-sm font-medium text-surface-700 mb-2">
+                      Additional Notes (optional)
+                    </label>
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Enter any additional details about the incident..."
+                      className="input min-h-[80px] resize-none"
+                    />
+                  </div>
+                )}
+                
+                {/* Submit Button */}
+                <button
+                  onClick={handleRecordMisconduct}
+                  disabled={!severity || !misconductType || disciplineMutation.isPending}
+                  className={clsx(
+                    'w-full py-4 text-lg rounded-xl font-medium transition-all',
+                    severity === 'light'
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300'
+                      : severity === 'medium'
+                      ? 'bg-orange-600 hover:bg-orange-700 text-white disabled:bg-orange-300'
+                      : 'bg-surface-200 text-surface-400 cursor-not-allowed'
+                  )}
+                >
+                  {disciplineMutation.isPending ? (
+                    <span className="flex items-center justify-center gap-2">
                       <Loader2 className="w-6 h-6 animate-spin" />
-                    ) : (
-                      <>
-                        <Sparkles className="w-6 h-6" />
-                        Reward +10
-                      </>
-                    )}
-                  </button>
-                  
-                  <button
-                    onClick={() => handleDiscipline('punishment')}
-                    disabled={disciplineMutation.isPending}
-                    className="btn-danger py-4 text-lg"
-                  >
-                    {disciplineMutation.isPending ? (
-                      <Loader2 className="w-6 h-6 animate-spin" />
-                    ) : (
-                      <>
+                      Recording...
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      {severity === 'light' ? (
+                        <AlertCircle className="w-6 h-6" />
+                      ) : severity === 'medium' ? (
                         <AlertTriangle className="w-6 h-6" />
-                        Punish −10
-                      </>
-                    )}
-                  </button>
-                </div>
+                      ) : null}
+                      Record Misconduct
+                    </span>
+                  )}
+                </button>
               </div>
             </>
           ) : identifyMutation.isError || identifyMutation.data?.matched === false ? (
@@ -301,7 +394,8 @@ export default function ScanPage() {
             <li>1. Position the student's face within the oval guide</li>
             <li>2. Ensure good lighting on the face</li>
             <li>3. Tap "Capture Photo" to identify the student</li>
-            <li>4. Record reward or punishment as needed</li>
+            <li>4. Select misconduct severity and type</li>
+            <li>5. Record the misconduct</li>
           </ol>
         </div>
       )}

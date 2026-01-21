@@ -1,6 +1,6 @@
-import { useState, useRef, useCallback } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Webcam from 'react-webcam'
 import { studentApi } from '../services/api'
 import { 
@@ -19,10 +19,17 @@ import {
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
 
-export default function AddStudentPage() {
+export default function EditStudentPage() {
+  const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const webcamRef = useRef(null)
+  
+  // Fetch student details
+  const { data: student, isLoading: studentLoading } = useQuery({
+    queryKey: ['student', id],
+    queryFn: () => studentApi.get(id),
+  })
   
   // Form state
   const [formData, setFormData] = useState({
@@ -36,20 +43,34 @@ export default function AddStudentPage() {
   const [showCamera, setShowCamera] = useState(false)
   const [capturedImage, setCapturedImage] = useState(null)
   const [facingMode, setFacingMode] = useState('user')
+  const [updateFace, setUpdateFace] = useState(false)
   
   // Validation errors
   const [errors, setErrors] = useState({})
   
-  // Create mutation
-  const createMutation = useMutation({
-    mutationFn: studentApi.create,
+  // Populate form with existing data
+  useEffect(() => {
+    if (student) {
+      setFormData({
+        student_id: student.student_id || '',
+        name: student.name || '',
+        class_name: student.class_name || '',
+        form: student.form?.toString() || '',
+      })
+    }
+  }, [student])
+  
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: (data) => studentApi.update(id, data),
     onSuccess: (data) => {
-      toast.success(`Student ${data.name} added successfully!`)
+      toast.success(`Student ${data.name} updated successfully!`)
       queryClient.invalidateQueries(['students'])
-      navigate(`/students/${data.id}`)
+      queryClient.invalidateQueries(['student', id])
+      navigate(`/students/${id}`)
     },
     onError: (error) => {
-      toast.error(error.response?.data?.detail || 'Failed to create student')
+      toast.error(error.response?.data?.detail || 'Failed to update student')
     },
   })
   
@@ -91,12 +112,14 @@ export default function AddStudentPage() {
     if (imageSrc) {
       setCapturedImage(imageSrc)
       setShowCamera(false)
+      setUpdateFace(true)
     }
   }, [])
   
   // Remove captured photo
   const removePhoto = () => {
     setCapturedImage(null)
+    setUpdateFace(false)
   }
   
   // Toggle camera facing mode
@@ -110,29 +133,56 @@ export default function AddStudentPage() {
     
     if (!validateForm()) return
     
-    createMutation.mutate({
+    const updateData = {
       ...formData,
       form: parseInt(formData.form),
-      face_image: capturedImage || undefined,
-    })
+    }
+    
+    // Only include face_image if we're updating it
+    if (updateFace && capturedImage) {
+      updateData.face_image = capturedImage
+    }
+    
+    updateMutation.mutate(updateData)
+  }
+  
+  if (studentLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+      </div>
+    )
+  }
+  
+  if (!student) {
+    return (
+      <div className="max-w-2xl mx-auto text-center py-12">
+        <h2 className="text-xl font-semibold text-surface-900">Student not found</h2>
+        <p className="text-surface-500 mt-2">The requested student does not exist.</p>
+        <Link to="/students" className="btn-primary mt-4 inline-flex">
+          <ArrowLeft className="w-5 h-5" />
+          Back to Students
+        </Link>
+      </div>
+    )
   }
   
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
       {/* Back button */}
       <Link 
-        to="/students" 
+        to={`/students/${id}`}
         className="inline-flex items-center gap-2 text-surface-600 hover:text-surface-900 transition-colors"
       >
         <ArrowLeft className="w-5 h-5" />
-        Back to Students
+        Back to Student
       </Link>
       
       {/* Header */}
       <div>
-        <h1 className="font-display text-3xl font-bold text-surface-900">Add New Student</h1>
+        <h1 className="font-display text-3xl font-bold text-surface-900">Edit Student</h1>
         <p className="text-surface-500 mt-1">
-          Register a new student with optional face recognition
+          Update student information and face registration
         </p>
       </div>
       
@@ -238,12 +288,16 @@ export default function AddStudentPage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-semibold text-lg text-surface-900">Face Registration</h2>
-              <p className="text-sm text-surface-500">Optional - Capture student's face for identification</p>
+              <p className="text-sm text-surface-500">
+                {student.has_face_embedding 
+                  ? 'Face is already registered. Capture new photo to update.' 
+                  : 'Optional - Capture student\'s face for identification'}
+              </p>
             </div>
-            {capturedImage && (
+            {(capturedImage || student.has_face_embedding) && (
               <span className="flex items-center gap-1 text-emerald-600 text-sm font-medium">
                 <CheckCircle2 className="w-4 h-4" />
-                Face captured
+                {capturedImage ? 'New face captured' : 'Face registered'}
               </span>
             )}
           </div>
@@ -329,30 +383,32 @@ export default function AddStudentPage() {
               className="w-full aspect-[4/3] rounded-xl border-2 border-dashed border-surface-300 hover:border-primary-400 transition-colors flex flex-col items-center justify-center gap-3 text-surface-500 hover:text-primary-600"
             >
               <Camera className="w-12 h-12" />
-              <span className="font-medium">Click to capture face photo</span>
+              <span className="font-medium">
+                {student.has_face_embedding ? 'Click to update face photo' : 'Click to capture face photo'}
+              </span>
             </button>
           )}
         </div>
         
         {/* Submit Button */}
         <div className="flex gap-4">
-          <Link to="/students" className="btn-secondary flex-1">
+          <Link to={`/students/${id}`} className="btn-secondary flex-1">
             Cancel
           </Link>
           <button
             type="submit"
-            disabled={createMutation.isPending}
+            disabled={updateMutation.isPending}
             className="btn-primary flex-1"
           >
-            {createMutation.isPending ? (
+            {updateMutation.isPending ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Creating...
+                Saving...
               </>
             ) : (
               <>
                 <Save className="w-5 h-5" />
-                Create Student
+                Save Changes
               </>
             )}
           </button>

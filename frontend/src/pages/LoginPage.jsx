@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { GraduationCap, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Building2, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -41,17 +41,20 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Logo and title */}
           <div className="text-center mb-8 animate-fade-in">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-400 to-primary-600 shadow-2xl shadow-primary-500/30 mb-6">
-              <GraduationCap className="w-10 h-10 text-white" />
+            {/* School Logo Placeholder */}
+            <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-primary-400 to-primary-600 shadow-2xl shadow-primary-500/30 mb-6 overflow-hidden">
+              {/* Replace with actual school logo image */}
+              <Building2 className="w-12 h-12 text-white" />
             </div>
-            <h1 className="font-display text-4xl font-bold text-white mb-2">Edulink</h1>
-            <p className="text-primary-200">Student Discipline Tracking System</p>
+            <h1 className="font-display text-4xl font-bold text-white mb-1">EduLink</h1>
+            <p className="text-primary-300 font-semibold text-lg">BErCHAMPION</p>
+            <p className="text-primary-200 text-sm mt-2">Student Discipline Tracking System</p>
           </div>
           
           {/* Login card */}
           <div className="card p-8 animate-slide-up">
             <h2 className="text-2xl font-display font-bold text-surface-900 mb-2">Welcome back</h2>
-            <p className="text-surface-500 mb-6">Sign in to your teacher account</p>
+            <p className="text-surface-500 mb-6">Sign in to your account</p>
             
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email field */}
@@ -136,7 +139,7 @@ export default function LoginPage() {
       
       {/* Footer */}
       <footer className="relative z-10 text-center py-4 text-primary-300 text-sm">
-        © 2024 Edulink. All rights reserved.
+        © 2024 EduLink BErCHAMPION. All rights reserved.
       </footer>
     </div>
   )

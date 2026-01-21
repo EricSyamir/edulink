@@ -1,12 +1,11 @@
 """
-Edulink API - Main Application
+EduLink BErCHAMPION API - Main Application
 Face detection and discipline tracking system for schools.
 """
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-# SessionMiddleware removed - no cookies/sessions
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
@@ -40,16 +39,9 @@ async def lifespan(app: FastAPI):
     Handles startup and shutdown events.
     """
     # Startup
-    logger.info("Starting Edulink API...")
+    logger.info("Starting EduLink BErCHAMPION API...")
     logger.info(f"Debug mode: {settings.DEBUG}")
     logger.info(f"CORS origins: {settings.cors_origins_list}")
-    logger.info(f"Session cookie SameSite: {'none' if not settings.DEBUG else 'lax'}")
-    logger.info(f"Session cookie Secure (HTTPS only): {not settings.DEBUG}")
-    
-    # Warn if DEBUG is True in what looks like production
-    if settings.DEBUG and not any("localhost" in origin for origin in settings.cors_origins_list):
-        logger.warning("⚠️ DEBUG=True detected but CORS origins suggest production!")
-        logger.warning("⚠️ Set DEBUG=False in production for cross-origin cookies to work!")
     
     # Initialize database tables (non-blocking - don't crash if DB unavailable)
     try:
@@ -65,14 +57,14 @@ async def lifespan(app: FastAPI):
     yield
     
     # Shutdown
-    logger.info("Shutting down Edulink API...")
+    logger.info("Shutting down EduLink BErCHAMPION API...")
 
 
 # Create FastAPI application
 app = FastAPI(
-    title="Edulink API",
+    title="EduLink BErCHAMPION API",
     description="Face detection and discipline tracking system for schools",
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan,
     docs_url="/api/docs",
     redoc_url="/api/redoc",
@@ -89,10 +81,7 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-# Session middleware removed - no cookies, no sessions, just basic login
-
-# Debug middleware to log cookie headers (runs after SessionMiddleware)
-# Middleware executes in reverse order, so this runs AFTER SessionMiddleware
+# Debug middleware to log cookie headers
 class CookieDebugMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Callable):
         response = await call_next(request)
@@ -102,7 +91,6 @@ class CookieDebugMiddleware(BaseHTTPMiddleware):
             logger.info(f"🔐 Login response Set-Cookie headers: {set_cookie_headers}")
         return response
 
-# Add debug middleware AFTER SessionMiddleware (so it can see the cookies)
 app.add_middleware(CookieDebugMiddleware)
 
 # Include routers
@@ -117,8 +105,8 @@ app.include_router(discipline_router)
 def root():
     """Root endpoint - API health check."""
     return {
-        "name": "Edulink API",
-        "version": "1.0.0",
+        "name": "EduLink BErCHAMPION API",
+        "version": "2.0.0",
         "status": "running",
         "docs": "/api/docs"
     }
@@ -138,10 +126,8 @@ def health_check():
 def get_config():
     """Get public configuration values."""
     return {
-        "initial_student_points": settings.INITIAL_STUDENT_POINTS,
-        "default_reward_points": settings.DEFAULT_REWARD_POINTS,
-        "default_punishment_points": settings.DEFAULT_PUNISHMENT_POINTS,
-        "face_similarity_threshold": settings.FACE_SIMILARITY_THRESHOLD
+        "face_similarity_threshold": settings.FACE_SIMILARITY_THRESHOLD,
+        "face_recognition_enabled": settings.FACE_RECOGNITION_ENABLED
     }
 
 

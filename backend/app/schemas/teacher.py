@@ -18,6 +18,7 @@ class TeacherBase(BaseModel):
 class TeacherCreate(TeacherBase):
     """Schema for creating a new teacher."""
     password: str = Field(..., min_length=6, max_length=100, description="Password (min 6 characters)")
+    is_admin: bool = Field(default=False, description="Whether teacher has admin privileges")
 
 
 class TeacherUpdate(BaseModel):
@@ -26,11 +27,13 @@ class TeacherUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     email: Optional[EmailStr] = None
     password: Optional[str] = Field(None, min_length=6, max_length=100)
+    is_admin: Optional[bool] = None
 
 
 class TeacherResponse(TeacherBase):
     """Schema for teacher response (excludes password)."""
     id: int
+    is_admin: bool
     created_at: datetime
     updated_at: datetime
     

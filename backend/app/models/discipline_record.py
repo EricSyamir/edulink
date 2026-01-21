@@ -1,6 +1,6 @@
 """
 Discipline Record Model
-Tracks rewards and punishments for students.
+Tracks light and medium misconducts for students.
 """
 
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum, Index
@@ -11,23 +11,41 @@ import enum
 from app.database import Base
 
 
-class DisciplineType(str, enum.Enum):
-    """Enum for discipline record types."""
-    REWARD = "reward"
-    PUNISHMENT = "punishment"
+class MisconductSeverity(str, enum.Enum):
+    """Enum for misconduct severity levels."""
+    LIGHT = "light"
+    MEDIUM = "medium"
+
+
+class LightMisconductType(str, enum.Enum):
+    """Types of light misconducts."""
+    LATE_TO_CLASS = "Late to Class"
+    IMPROPER_UNIFORM = "Improper Uniform"
+    LITTERING = "Littering"
+    NOISE_MAKING = "Noise Making"
+    INCOMPLETE_HOMEWORK = "Incomplete Homework"
+
+
+class MediumMisconductType(str, enum.Enum):
+    """Types of medium misconducts."""
+    SKIPPING_CLASS = "Skipping Class"
+    VANDALISM = "Vandalism"
+    BULLYING = "Bullying"
+    CHEATING = "Cheating"
+    DISRESPECT_TO_TEACHER = "Disrespect to Teacher"
 
 
 class DisciplineRecord(Base):
     """
-    Discipline records tracking student rewards and punishments.
+    Discipline records tracking student misconducts.
     
     Attributes:
         id: Primary key, auto-incremented
         student_id: Foreign key to students table
         teacher_id: Foreign key to teachers table (who created the record)
-        type: Either "reward" or "punishment"
-        points_change: Points added/subtracted (typically +10 or -10)
-        reason: Optional description of why the record was created
+        severity: Either "light" or "medium"
+        misconduct_type: The specific type of misconduct
+        notes: Optional additional notes about the incident
         created_at: Timestamp when record was created
     """
     
@@ -36,9 +54,9 @@ class DisciplineRecord(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
     teacher_id = Column(Integer, ForeignKey("teachers.id", ondelete="SET NULL"), nullable=True, index=True)
-    type = Column(Enum(DisciplineType), nullable=False)
-    points_change = Column(Integer, nullable=False)
-    reason = Column(Text, nullable=True)
+    severity = Column(Enum(MisconductSeverity), nullable=False)
+    misconduct_type = Column(String(100), nullable=False)
+    notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     
     # Relationships
@@ -48,8 +66,9 @@ class DisciplineRecord(Base):
     # Indexes for common queries
     __table_args__ = (
         Index("idx_discipline_student_created", "student_id", "created_at"),
-        Index("idx_discipline_type", "type"),
+        Index("idx_discipline_severity", "severity"),
+        Index("idx_discipline_misconduct_type", "misconduct_type"),
     )
     
     def __repr__(self):
-        return f"<DisciplineRecord(id={self.id}, student_id={self.student_id}, type='{self.type}', points={self.points_change})>"
+        return f"<DisciplineRecord(id={self.id}, student_id={self.student_id}, severity='{self.severity}', type='{self.misconduct_type}')>"

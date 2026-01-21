@@ -10,15 +10,16 @@ from sqlalchemy import or_
 from loguru import logger
 
 from app.database import get_db
-from app.models import Student, StudentPoints, Teacher
+from app.models import Student, Teacher
 from app.schemas.student import (
     StudentCreate,
     StudentUpdate,
     StudentResponse,
-    StudentWithPoints,
+    StudentWithMisconducts,
     StudentIdentifyResponse,
+    BulkFormUpdate,
 )
-from app.services.auth import get_current_teacher
+from app.services.auth import get_current_teacher, require_admin
 from app.services.face_recognition import face_recognition_service
 from app.services.discipline import discipline_service
 from app.config import settings
@@ -39,35 +40,35 @@ def student_to_response(student: Student) -> StudentResponse:
         student_id=student.student_id,
         name=student.name,
         class_name=student.class_name,
-        standard=student.standard,
+        form=student.form,
         created_at=student.created_at,
         updated_at=student.updated_at,
         has_face_embedding=student.face_embedding is not None
     )
 
 
-def student_to_with_points(student: Student, db: Session) -> StudentWithPoints:
-    """Convert Student model to response with points."""
-    points = discipline_service.get_student_points(db, student.id)
+def student_to_with_misconducts(student: Student, db: Session) -> StudentWithMisconducts:
+    """Convert Student model to response with misconduct stats."""
+    stats = discipline_service.get_student_misconduct_stats(db, student.id)
     
-    return StudentWithPoints(
+    return StudentWithMisconducts(
         id=student.id,
         student_id=student.student_id,
         name=student.name,
         class_name=student.class_name,
-        standard=student.standard,
+        form=student.form,
         created_at=student.created_at,
         updated_at=student.updated_at,
         has_face_embedding=student.face_embedding is not None,
-        current_points=points
+        misconduct_stats=stats
     )
 
 
-@router.get("", response_model=List[StudentWithPoints])
+@router.get("", response_model=List[StudentWithMisconducts])
 def list_students(
     search: Optional[str] = Query(None, description="Search by name or student_id"),
     class_name: Optional[str] = Query(None, description="Filter by class"),
-    standard: Optional[int] = Query(None, ge=1, le=6, description="Filter by standard"),
+    form: Optional[int] = Query(None, ge=1, le=5, description="Filter by form (1-5)"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(50, ge=1, le=100, description="Maximum records to return"),
     db: Session = Depends(get_db),
@@ -78,7 +79,7 @@ def list_students(
     
     - **search**: Search in name and student_id
     - **class_name**: Filter by class name
-    - **standard**: Filter by grade level (1-6)
+    - **form**: Filter by form level (1-5)
     - **skip**: Pagination offset
     - **limit**: Maximum results (1-100)
     """
@@ -98,17 +99,35 @@ def list_students(
     if class_name:
         query = query.filter(Student.class_name == class_name)
     
-    # Apply standard filter
-    if standard:
-        query = query.filter(Student.standard == standard)
+    # Apply form filter
+    if form:
+        query = query.filter(Student.form == form)
     
     # Order by name and apply pagination
     students = query.order_by(Student.name).offset(skip).limit(limit).all()
     
-    return [student_to_with_points(s, db) for s in students]
+    return [student_to_with_misconducts(s, db) for s in students]
 
 
-@router.get("/{student_id}", response_model=StudentWithPoints)
+@router.get("/classes", response_model=List[str])
+def list_classes(
+    form: Optional[int] = Query(None, ge=1, le=5, description="Filter by form"),
+    db: Session = Depends(get_db),
+    teacher: Teacher = Depends(get_current_teacher)
+):
+    """
+    Get list of all unique class names.
+    """
+    query = db.query(Student.class_name).distinct()
+    
+    if form:
+        query = query.filter(Student.form == form)
+    
+    classes = query.order_by(Student.class_name).all()
+    return [c[0] for c in classes]
+
+
+@router.get("/{student_id}", response_model=StudentWithMisconducts)
 def get_student(
     student_id: int,
     db: Session = Depends(get_db),
@@ -125,10 +144,10 @@ def get_student(
             detail=f"Student with id {student_id} not found"
         )
     
-    return student_to_with_points(student, db)
+    return student_to_with_misconducts(student, db)
 
 
-@router.post("", response_model=StudentWithPoints, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=StudentWithMisconducts, status_code=status.HTTP_201_CREATED)
 def create_student(
     student_data: StudentCreate,
     db: Session = Depends(get_db),
@@ -139,8 +158,8 @@ def create_student(
     
     - **student_id**: Unique school ID (e.g., "2024001")
     - **name**: Student's full name
-    - **class_name**: Class name (e.g., "3 Amanah")
-    - **standard**: Grade level (1-6)
+    - **class_name**: Class name (e.g., "1 Amanah")
+    - **form**: Form level (1-5)
     - **face_image**: Optional base64 encoded face image
     """
     # Check for duplicate student_id
@@ -172,7 +191,7 @@ def create_student(
         student_id=student_data.student_id,
         name=student_data.name,
         class_name=student_data.class_name,
-        standard=student_data.standard,
+        form=student_data.form,
         face_embedding=face_embedding_json
     )
     
@@ -180,15 +199,12 @@ def create_student(
     db.commit()
     db.refresh(student)
     
-    # Initialize student points
-    discipline_service.initialize_student_points(db, student.id)
-    
     logger.info(f"Student created: {student.student_id} - {student.name}")
     
-    return student_to_with_points(student, db)
+    return student_to_with_misconducts(student, db)
 
 
-@router.put("/{student_id}", response_model=StudentWithPoints)
+@router.put("/{student_id}", response_model=StudentWithMisconducts)
 def update_student(
     student_id: int,
     student_data: StudentUpdate,
@@ -226,8 +242,8 @@ def update_student(
         student.name = student_data.name
     if student_data.class_name:
         student.class_name = student_data.class_name
-    if student_data.standard:
-        student.standard = student_data.standard
+    if student_data.form is not None:
+        student.form = student_data.form
     
     # Update face embedding if new image provided
     if student_data.face_image:
@@ -249,7 +265,7 @@ def update_student(
     
     logger.info(f"Student updated: {student.student_id}")
     
-    return student_to_with_points(student, db)
+    return student_to_with_misconducts(student, db)
 
 
 @router.delete("/{student_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -334,7 +350,7 @@ def identify_student(
     
     # Get matched student details
     matched_student = db.query(Student).filter(Student.id == best_match_id).first()
-    student_with_points = student_to_with_points(matched_student, db)
+    student_with_misconducts = student_to_with_misconducts(matched_student, db)
     
     logger.info(
         f"Face identification successful: {matched_student.student_id} - {matched_student.name} "
@@ -344,6 +360,37 @@ def identify_student(
     return StudentIdentifyResponse(
         matched=True,
         match_confidence=similarity,
-        student=student_with_points,
+        student=student_with_misconducts,
         message=f"Student identified: {matched_student.name}"
     )
+
+
+@router.post("/promote", status_code=status.HTTP_200_OK)
+def promote_students(
+    data: BulkFormUpdate,
+    db: Session = Depends(get_db),
+    teacher: Teacher = Depends(require_admin)
+):
+    """
+    Promote all students from one form to another (Admin only).
+    
+    - **from_form**: Current form level
+    - **to_form**: New form level
+    """
+    if data.to_form > 5:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot promote beyond Form 5"
+        )
+    
+    try:
+        count = discipline_service.promote_form(db, data.from_form, data.to_form)
+        return {
+            "message": f"Successfully promoted {count} students from Form {data.from_form} to Form {data.to_form}",
+            "count": count
+        }
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )

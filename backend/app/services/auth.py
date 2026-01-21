@@ -101,5 +101,26 @@ async def get_current_teacher(
     return AuthService.get_teacher_from_token(teacher_id, db)
 
 
+# Dependency function for admin-only routes
+async def require_admin(
+    teacher: Teacher = Depends(get_current_teacher)
+) -> Teacher:
+    """
+    FastAPI dependency to require admin privileges.
+    
+    Usage:
+        @router.post("/admin-only")
+        def admin_route(teacher: Teacher = Depends(require_admin)):
+            return {"admin": teacher.name}
+    """
+    if not teacher.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required",
+        )
+    
+    return teacher
+
+
 # Global service instance
 auth_service = AuthService()

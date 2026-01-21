@@ -39,7 +39,8 @@ def login(
             "id": teacher.id,
             "teacher_id": teacher.teacher_id,
             "name": teacher.name,
-            "email": teacher.email
+            "email": teacher.email,
+            "is_admin": teacher.is_admin
         },
         "token": str(teacher.id)  # Simple token = teacher ID (send in Authorization header)
     }
@@ -55,7 +56,8 @@ def get_current_user(teacher: Teacher = Depends(get_current_teacher)):
         "id": teacher.id,
         "teacher_id": teacher.teacher_id,
         "name": teacher.name,
-        "email": teacher.email
+        "email": teacher.email,
+        "is_admin": teacher.is_admin
     }
 
 

@@ -11,7 +11,7 @@ from loguru import logger
 from app.database import get_db
 from app.models import Teacher
 from app.schemas.teacher import TeacherCreate, TeacherUpdate, TeacherResponse
-from app.services.auth import get_current_teacher
+from app.services.auth import get_current_teacher, require_admin
 from app.utils.security import get_password_hash
 
 router = APIRouter(prefix="/api/teachers", tags=["Teachers"])
@@ -31,6 +31,16 @@ def list_teachers(
     """
     teachers = db.query(Teacher).order_by(Teacher.name).offset(skip).limit(limit).all()
     return teachers
+
+
+@router.get("/me", response_model=TeacherResponse)
+def get_current_teacher_info(
+    current_teacher: Teacher = Depends(get_current_teacher)
+):
+    """
+    Get current authenticated teacher's information.
+    """
+    return current_teacher
 
 
 @router.get("/{teacher_id}", response_model=TeacherResponse)
@@ -57,15 +67,16 @@ def get_teacher(
 def create_teacher(
     teacher_data: TeacherCreate,
     db: Session = Depends(get_db),
-    current_teacher: Teacher = Depends(get_current_teacher)
+    current_teacher: Teacher = Depends(require_admin)
 ):
     """
-    Create a new teacher account.
+    Create a new teacher account (Admin only).
     
     - **teacher_id**: Unique teacher ID (e.g., "T2024001")
     - **name**: Teacher's full name
     - **email**: Email for login (must be unique)
     - **password**: Password (will be hashed)
+    - **is_admin**: Whether teacher has admin privileges
     """
     # Check for duplicate teacher_id
     existing_id = db.query(Teacher).filter(
@@ -92,14 +103,15 @@ def create_teacher(
         teacher_id=teacher_data.teacher_id,
         name=teacher_data.name,
         email=teacher_data.email,
-        password_hash=get_password_hash(teacher_data.password)
+        password_hash=get_password_hash(teacher_data.password),
+        is_admin=teacher_data.is_admin
     )
     
     db.add(teacher)
     db.commit()
     db.refresh(teacher)
     
-    logger.info(f"Teacher created: {teacher.teacher_id} - {teacher.name}")
+    logger.info(f"Teacher created by {current_teacher.name}: {teacher.teacher_id} - {teacher.name}")
     
     return teacher
 
@@ -109,10 +121,10 @@ def update_teacher(
     teacher_id: int,
     teacher_data: TeacherUpdate,
     db: Session = Depends(get_db),
-    current_teacher: Teacher = Depends(get_current_teacher)
+    current_teacher: Teacher = Depends(require_admin)
 ):
     """
-    Update an existing teacher.
+    Update an existing teacher (Admin only).
     
     Can update basic info and/or password.
     """
@@ -155,11 +167,13 @@ def update_teacher(
         teacher.email = teacher_data.email
     if teacher_data.password:
         teacher.password_hash = get_password_hash(teacher_data.password)
+    if teacher_data.is_admin is not None:
+        teacher.is_admin = teacher_data.is_admin
     
     db.commit()
     db.refresh(teacher)
     
-    logger.info(f"Teacher updated: {teacher.teacher_id}")
+    logger.info(f"Teacher updated by {current_teacher.name}: {teacher.teacher_id}")
     
     return teacher
 
@@ -168,10 +182,10 @@ def update_teacher(
 def delete_teacher(
     teacher_id: int,
     db: Session = Depends(get_db),
-    current_teacher: Teacher = Depends(get_current_teacher)
+    current_teacher: Teacher = Depends(require_admin)
 ):
     """
-    Delete a teacher account.
+    Delete a teacher account (Admin only).
     
     Note: Cannot delete yourself.
     """
@@ -189,7 +203,7 @@ def delete_teacher(
             detail=f"Teacher with id {teacher_id} not found"
         )
     
-    logger.info(f"Deleting teacher: {teacher.teacher_id} - {teacher.name}")
+    logger.info(f"Teacher deleted by {current_teacher.name}: {teacher.teacher_id} - {teacher.name}")
     
     db.delete(teacher)
     db.commit()

@@ -7,21 +7,59 @@ import {
   LogOut,
   Menu,
   X,
-  GraduationCap
+  GraduationCap,
+  Building2,
+  School,
+  UserCog,
+  ShieldCheck
 } from 'lucide-react'
 import { useState } from 'react'
 import clsx from 'clsx'
 
-const navItems = [
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/scan', label: 'Scan Student', icon: Camera },
-  { path: '/students', label: 'Students', icon: Users },
-]
+// School logo placeholder component
+function SchoolLogo({ size = 'md' }) {
+  const sizeClasses = {
+    sm: 'w-10 h-10',
+    md: 'w-11 h-11',
+    lg: 'w-20 h-20'
+  }
+  
+  return (
+    <div className={clsx(
+      sizeClasses[size],
+      'rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-lg shadow-primary-500/20 overflow-hidden'
+    )}>
+      {/* Placeholder for school image - replace with <img> when available */}
+      <Building2 className={clsx(
+        size === 'lg' ? 'w-10 h-10' : size === 'md' ? 'w-6 h-6' : 'w-5 h-5',
+        'text-white'
+      )} />
+    </div>
+  )
+}
 
 export default function Layout() {
   const { teacher, logout } = useAuth()
   const navigate = useNavigate()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  
+  // Check if user is admin
+  const isAdmin = teacher?.is_admin || teacher?.role === 'admin'
+  
+  // Navigation items
+  const navItems = [
+    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/scan', label: 'Scan Student', icon: Camera },
+    { path: '/students', label: 'Students', icon: Users },
+    { path: '/forms', label: 'Forms', icon: GraduationCap },
+    { path: '/classes', label: 'Classes', icon: School },
+  ]
+  
+  // Admin-only navigation items
+  const adminNavItems = [
+    { path: '/admin', label: 'Admin Panel', icon: ShieldCheck },
+    { path: '/admin/teachers', label: 'Manage Teachers', icon: UserCog },
+  ]
   
   const handleLogout = () => {
     logout()
@@ -34,10 +72,11 @@ export default function Layout() {
       <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-surface-200">
         <div className="flex items-center justify-between px-4 h-16">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-white" />
+            <SchoolLogo size="sm" />
+            <div>
+              <span className="font-display font-bold text-lg text-surface-900">EduLink</span>
+              <span className="text-xs text-primary-600 block -mt-1">BErCHAMPION</span>
             </div>
-            <span className="font-display font-bold text-lg text-surface-900">Edulink</span>
           </div>
           
           <button
@@ -75,6 +114,31 @@ export default function Layout() {
                 </NavLink>
               ))}
               
+              {/* Admin items (only show if admin) */}
+              {isAdmin && (
+                <>
+                  <hr className="my-2 border-surface-200" />
+                  {adminNavItems.map((item) => (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={({ isActive }) =>
+                        clsx(
+                          'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200',
+                          isActive
+                            ? 'bg-amber-50 text-amber-700 font-medium'
+                            : 'text-surface-600 hover:bg-surface-100'
+                        )
+                      }
+                    >
+                      <item.icon className="w-5 h-5" />
+                      {item.label}
+                    </NavLink>
+                  ))}
+                </>
+              )}
+              
               <hr className="my-2 border-surface-200" />
               
               <button
@@ -93,17 +157,15 @@ export default function Layout() {
       <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-surface-200">
         {/* Logo */}
         <div className="flex items-center gap-3 px-6 h-20 border-b border-surface-200">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-lg shadow-primary-500/20">
-            <GraduationCap className="w-6 h-6 text-white" />
-          </div>
+          <SchoolLogo size="md" />
           <div>
-            <h1 className="font-display font-bold text-xl text-surface-900">Edulink</h1>
-            <p className="text-xs text-surface-500">Discipline Tracker</p>
+            <h1 className="font-display font-bold text-xl text-surface-900">EduLink</h1>
+            <p className="text-xs text-primary-600 font-medium">BErCHAMPION</p>
           </div>
         </div>
         
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
@@ -121,6 +183,34 @@ export default function Layout() {
               {item.label}
             </NavLink>
           ))}
+          
+          {/* Admin section */}
+          {isAdmin && (
+            <>
+              <div className="pt-4 pb-2">
+                <p className="px-4 text-xs font-medium text-surface-400 uppercase tracking-wider">
+                  Admin
+                </p>
+              </div>
+              {adminNavItems.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) =>
+                    clsx(
+                      'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200',
+                      isActive
+                        ? 'bg-amber-50 text-amber-700 font-medium shadow-sm'
+                        : 'text-surface-600 hover:bg-surface-100 hover:text-surface-900'
+                    )
+                  }
+                >
+                  <item.icon className="w-5 h-5" />
+                  {item.label}
+                </NavLink>
+              ))}
+            </>
+          )}
         </nav>
         
         {/* User section */}
@@ -131,7 +221,9 @@ export default function Layout() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-medium text-surface-900 truncate">{teacher?.name}</p>
-              <p className="text-xs text-surface-500 truncate">{teacher?.email}</p>
+              <p className="text-xs text-surface-500 truncate">
+                {isAdmin ? 'Administrator' : 'Teacher'}
+              </p>
             </div>
           </div>
           

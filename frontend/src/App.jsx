@@ -7,21 +7,52 @@ import ScanPage from './pages/ScanPage'
 import StudentDetailPage from './pages/StudentDetailPage'
 import StudentsPage from './pages/StudentsPage'
 import AddStudentPage from './pages/AddStudentPage'
+import EditStudentPage from './pages/EditStudentPage'
+import FormsPage from './pages/FormsPage'
+import ClassesPage from './pages/ClassesPage'
+import AdminPage from './pages/AdminPage'
+import AdminTeachersPage from './pages/AdminTeachersPage'
 import ConfigError from './components/ConfigError'
 
 /**
- * Protected route wrapper - authentication disabled, always allows access
+ * Protected route wrapper - redirects to login if not authenticated
  */
 function ProtectedRoute({ children }) {
-  // Authentication disabled - always allow access
+  const { isAuthenticated, isLoading } = useAuth()
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface-50">
+        <div className="animate-pulse-soft text-primary-600">
+          <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+        </div>
+      </div>
+    )
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+  
   return children
 }
 
 /**
- * Public route wrapper - authentication disabled, always allows access
+ * Public route wrapper - redirects to dashboard if already authenticated
  */
 function PublicRoute({ children }) {
-  // Authentication disabled - always allow access
+  const { isAuthenticated, isLoading } = useAuth()
+  
+  if (isLoading) {
+    return null
+  }
+  
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />
+  }
+  
   return children
 }
 
@@ -53,6 +84,11 @@ function AppRoutes() {
         <Route path="students" element={<StudentsPage />} />
         <Route path="students/add" element={<AddStudentPage />} />
         <Route path="students/:id" element={<StudentDetailPage />} />
+        <Route path="students/:id/edit" element={<EditStudentPage />} />
+        <Route path="forms" element={<FormsPage />} />
+        <Route path="classes" element={<ClassesPage />} />
+        <Route path="admin" element={<AdminPage />} />
+        <Route path="admin/teachers" element={<AdminTeachersPage />} />
       </Route>
       
       {/* Catch all - redirect to dashboard */}
@@ -62,7 +98,7 @@ function AppRoutes() {
 }
 
 export default function App() {
-  console.log('📱 App component rendering...')
+  console.log('📱 EduLink BErCHAMPION starting...')
   
   // Check if API URL is configured (only warn in production)
   const apiUrl = import.meta.env.VITE_API_URL

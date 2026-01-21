@@ -43,6 +43,6 @@ def init_db():
     Called on application startup.
     """
     # Import all models to ensure they're registered with Base
-    from app.models import student, teacher, discipline_record, student_points
+    from app.models import Student, Teacher, DisciplineRecord
     
     Base.metadata.create_all(bind=engine)

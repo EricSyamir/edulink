@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 /**
- * Axios instance configured for the Edulink API
+ * Axios instance configured for the EduLink BErCHAMPION API
  */
 const API_URL = import.meta.env.VITE_API_URL || ''
 
@@ -87,6 +87,15 @@ export const studentApi = {
   },
   
   /**
+   * Get list of all classes
+   */
+  getClasses: async (form = null) => {
+    const params = form ? { form } : {}
+    const response = await api.get('/api/students/classes', { params })
+    return response.data
+  },
+  
+  /**
    * Get a single student by ID
    */
   get: async (id) => {
@@ -124,6 +133,14 @@ export const studentApi = {
     const response = await api.post('/api/students/identify', { face_image: faceImage })
     return response.data
   },
+  
+  /**
+   * Promote students from one form to another (Admin only)
+   */
+  promote: async (fromForm, toForm) => {
+    const response = await api.post('/api/students/promote', { from_form: fromForm, to_form: toForm })
+    return response.data
+  },
 }
 
 // ============================================
@@ -131,6 +148,14 @@ export const studentApi = {
 // ============================================
 
 export const disciplineApi = {
+  /**
+   * Get misconduct types
+   */
+  getTypes: async () => {
+    const response = await api.get('/api/discipline-records/types')
+    return response.data
+  },
+  
   /**
    * List discipline records with optional filters
    */
@@ -148,7 +173,7 @@ export const disciplineApi = {
   },
   
   /**
-   * Create a new discipline record (reward or punishment)
+   * Create a new discipline record (misconduct)
    */
   create: async (data) => {
     const response = await api.post('/api/discipline-records', data)
@@ -160,6 +185,47 @@ export const disciplineApi = {
    */
   delete: async (id) => {
     await api.delete(`/api/discipline-records/${id}`)
+  },
+  
+  /**
+   * Get form statistics
+   */
+  getFormStats: async () => {
+    const response = await api.get('/api/discipline-records/forms/stats')
+    return response.data
+  },
+  
+  /**
+   * Get single form statistics
+   */
+  getSingleFormStats: async (form) => {
+    const response = await api.get(`/api/discipline-records/forms/${form}/stats`)
+    return response.data
+  },
+  
+  /**
+   * Get all classes statistics
+   */
+  getClassesStats: async (form = null) => {
+    const params = form ? { form } : {}
+    const response = await api.get('/api/discipline-records/classes/stats', { params })
+    return response.data
+  },
+  
+  /**
+   * Get single class statistics
+   */
+  getSingleClassStats: async (className) => {
+    const response = await api.get(`/api/discipline-records/classes/${encodeURIComponent(className)}/stats`)
+    return response.data
+  },
+  
+  /**
+   * Get dashboard analytics
+   */
+  getAnalytics: async (days = 30) => {
+    const response = await api.get('/api/discipline-records/analytics', { params: { days } })
+    return response.data
   },
 }
 
@@ -177,6 +243,14 @@ export const teacherApi = {
   },
   
   /**
+   * Get current teacher info
+   */
+  me: async () => {
+    const response = await api.get('/api/teachers/me')
+    return response.data
+  },
+  
+  /**
    * Get a single teacher by ID
    */
   get: async (id) => {
@@ -185,7 +259,7 @@ export const teacherApi = {
   },
   
   /**
-   * Create a new teacher
+   * Create a new teacher (Admin only)
    */
   create: async (data) => {
     const response = await api.post('/api/teachers', data)
@@ -193,7 +267,7 @@ export const teacherApi = {
   },
   
   /**
-   * Update an existing teacher
+   * Update an existing teacher (Admin only)
    */
   update: async (id, data) => {
     const response = await api.put(`/api/teachers/${id}`, data)
@@ -201,7 +275,7 @@ export const teacherApi = {
   },
   
   /**
-   * Delete a teacher
+   * Delete a teacher (Admin only)
    */
   delete: async (id) => {
     await api.delete(`/api/teachers/${id}`)

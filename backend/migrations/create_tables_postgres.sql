@@ -1,138 +1,108 @@
--- Edulink Database Schema (PostgreSQL / Supabase)
+-- EduLink BErCHAMPION Database Schema
 -- Creates all required tables for the discipline tracking system
--- Compatible with PostgreSQL 14+ (Supabase)
+-- Compatible with PostgreSQL 12+
+
+-- Create enum types
+DO $$ BEGIN
+    CREATE TYPE misconduct_severity AS ENUM ('light', 'medium');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- ============================================
 -- STUDENTS TABLE
 -- Stores student information and face embeddings
 -- ============================================
 CREATE TABLE IF NOT EXISTS students (
-  id BIGSERIAL PRIMARY KEY,
-  student_id VARCHAR(50) NOT NULL UNIQUE,
-  name VARCHAR(255) NOT NULL,
-  class_name VARCHAR(100) NOT NULL,
-  standard INT NOT NULL CHECK (standard >= 1 AND standard <= 6),
-  face_embedding TEXT NULL, -- JSON array of 512 floats (buffalo_l embedding)
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id SERIAL PRIMARY KEY,
+    student_id VARCHAR(50) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    class_name VARCHAR(100) NOT NULL,
+    form INTEGER NOT NULL CHECK (form >= 1 AND form <= 5),
+    face_embedding TEXT NULL, -- JSON array of 512-dimensional face embedding
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Indexes for students
 CREATE INDEX IF NOT EXISTS idx_student_id ON students(student_id);
 CREATE INDEX IF NOT EXISTS idx_student_name ON students(name);
 CREATE INDEX IF NOT EXISTS idx_student_class ON students(class_name);
-CREATE INDEX IF NOT EXISTS idx_student_standard ON students(standard);
+CREATE INDEX IF NOT EXISTS idx_student_form ON students(form);
 
--- Auto-update updated_at on row updates
-CREATE OR REPLACE FUNCTION set_updated_at()
+-- Trigger to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ language 'plpgsql';
 
-DROP TRIGGER IF EXISTS trg_students_updated_at ON students;
-CREATE TRIGGER trg_students_updated_at
-BEFORE UPDATE ON students
-FOR EACH ROW
-EXECUTE FUNCTION set_updated_at();
+DROP TRIGGER IF EXISTS update_students_updated_at ON students;
+CREATE TRIGGER update_students_updated_at
+    BEFORE UPDATE ON students
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
 -- TEACHERS TABLE
 -- Stores teacher credentials and information
 -- ============================================
 CREATE TABLE IF NOT EXISTS teachers (
-  id BIGSERIAL PRIMARY KEY,
-  teacher_id VARCHAR(50) NOT NULL UNIQUE,
-  name VARCHAR(255) NOT NULL,
-  email VARCHAR(255) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id SERIAL PRIMARY KEY,
+    teacher_id VARCHAR(50) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    is_admin BOOLEAN DEFAULT FALSE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Indexes for teachers
 CREATE INDEX IF NOT EXISTS idx_teacher_id ON teachers(teacher_id);
 CREATE INDEX IF NOT EXISTS idx_teacher_email ON teachers(email);
 CREATE INDEX IF NOT EXISTS idx_teacher_name ON teachers(name);
 
-DROP TRIGGER IF EXISTS trg_teachers_updated_at ON teachers;
-CREATE TRIGGER trg_teachers_updated_at
-BEFORE UPDATE ON teachers
-FOR EACH ROW
-EXECUTE FUNCTION set_updated_at();
+-- Trigger to update updated_at timestamp
+DROP TRIGGER IF EXISTS update_teachers_updated_at ON teachers;
+CREATE TRIGGER update_teachers_updated_at
+    BEFORE UPDATE ON teachers
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
 -- DISCIPLINE RECORDS TABLE
--- Tracks rewards and punishments for students
+-- Tracks light and medium misconducts for students
 -- ============================================
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'discipline_type') THEN
-    CREATE TYPE discipline_type AS ENUM ('reward', 'punishment');
-  END IF;
-END$$;
-
 CREATE TABLE IF NOT EXISTS discipline_records (
-  id BIGSERIAL PRIMARY KEY,
-  student_id BIGINT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-  teacher_id BIGINT NULL REFERENCES teachers(id) ON DELETE SET NULL,
-  type discipline_type NOT NULL,
-  points_change INT NOT NULL,
-  reason TEXT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id SERIAL PRIMARY KEY,
+    student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    teacher_id INTEGER REFERENCES teachers(id) ON DELETE SET NULL,
+    severity misconduct_severity NOT NULL,
+    misconduct_type VARCHAR(100) NOT NULL,
+    notes TEXT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Indexes for discipline_records
 CREATE INDEX IF NOT EXISTS idx_discipline_student ON discipline_records(student_id);
 CREATE INDEX IF NOT EXISTS idx_discipline_teacher ON discipline_records(teacher_id);
-CREATE INDEX IF NOT EXISTS idx_discipline_type ON discipline_records(type);
+CREATE INDEX IF NOT EXISTS idx_discipline_severity ON discipline_records(severity);
+CREATE INDEX IF NOT EXISTS idx_discipline_misconduct_type ON discipline_records(misconduct_type);
 CREATE INDEX IF NOT EXISTS idx_discipline_created ON discipline_records(created_at);
 CREATE INDEX IF NOT EXISTS idx_discipline_student_created ON discipline_records(student_id, created_at);
 
 -- ============================================
--- STUDENT POINTS TABLE
--- Tracks current Sahsiah points for each student
--- ============================================
-CREATE TABLE IF NOT EXISTS student_points (
-  student_id BIGINT PRIMARY KEY REFERENCES students(id) ON DELETE CASCADE,
-  current_points INT NOT NULL DEFAULT 100
-);
-
--- ============================================
--- TRIGGERS
--- Automatically manage student_points
+-- SEED DATA (Optional - for testing)
 -- ============================================
 
--- Create student_points entry when new student is added
-CREATE OR REPLACE FUNCTION create_student_points()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO student_points (student_id, current_points)
-  VALUES (NEW.id, 100)
-  ON CONFLICT (student_id) DO NOTHING;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS trg_students_points_init ON students;
-CREATE TRIGGER trg_students_points_init
-AFTER INSERT ON students
-FOR EACH ROW
-EXECUTE FUNCTION create_student_points();
-
--- Update student points when discipline record is added
-CREATE OR REPLACE FUNCTION apply_discipline_points()
-RETURNS TRIGGER AS $$
-BEGIN
-  UPDATE student_points
-  SET current_points = current_points + NEW.points_change
-  WHERE student_id = NEW.student_id;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS trg_discipline_points_apply ON discipline_records;
-CREATE TRIGGER trg_discipline_points_apply
-AFTER INSERT ON discipline_records
-FOR EACH ROW
-EXECUTE FUNCTION apply_discipline_points();
-
+-- Insert default admin teachers (password: admin123)
+-- To generate password hash, use: 
+-- python -c "from passlib.context import CryptContext; print(CryptContext(schemes=['bcrypt']).hash('admin123'))"
+INSERT INTO teachers (teacher_id, name, email, password_hash, is_admin) 
+VALUES 
+    ('T000001', 'Admin 1', 'admin@edulink.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.N0TUFgHXXXXXXX', TRUE),
+    ('T000002', 'Admin 2', 'admin2@edulink.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.N0TUFgHXXXXXXX', TRUE)
+ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name;

@@ -22,10 +22,14 @@ export function AuthProvider({ children }) {
         const response = await api.get('/api/auth/me')
         console.log('✅ Session valid:', response.data)
         setTeacher(response.data)
+        
+        // Update localStorage with latest data
+        localStorage.setItem(TEACHER_KEY, JSON.stringify(response.data))
       } catch (error) {
         // No valid session, user not logged in
         console.log('ℹ️ No valid session:', error.response?.status || error.message)
         setTeacher(null)
+        localStorage.removeItem(TEACHER_KEY)
       } finally {
         setIsLoading(false)
         console.log('🔐 Auth initialization complete')
@@ -82,6 +86,7 @@ export function AuthProvider({ children }) {
   const value = {
     teacher,
     isAuthenticated: !!teacher,
+    isAdmin: teacher?.is_admin || false,
     isLoading,
     login,
     logout,

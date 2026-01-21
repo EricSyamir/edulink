@@ -24,11 +24,6 @@ class Settings(BaseSettings):
     FACE_MODEL_NAME: str = "buffalo_sc"  # Smaller model, uses less memory than buffalo_l
     FACE_RECOGNITION_ENABLED: bool = True  # Set to False to disable face recognition (saves memory)
     
-    # Discipline Points
-    DEFAULT_REWARD_POINTS: int = 10
-    DEFAULT_PUNISHMENT_POINTS: int = -10
-    INITIAL_STUDENT_POINTS: int = 100
-    
     # Server
     HOST: str = "0.0.0.0"
     PORT: int = 8000  # Will be overridden by PORT env var on cloud platforms

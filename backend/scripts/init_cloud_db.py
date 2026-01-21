@@ -11,7 +11,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database import engine, Base, SessionLocal
-from app.models import student, teacher, discipline_record, student_points
+from app.models import Student, Teacher, DisciplineRecord
 from app.utils.security import get_password_hash
 from loguru import logger
 
@@ -22,34 +22,62 @@ def init_database():
     logger.info("✓ Tables created successfully")
 
 def seed_admin():
-    """Create initial admin teacher."""
+    """Create initial admin teachers."""
     db = SessionLocal()
     try:
-        from app.models import Teacher
+        # Admin accounts to create
+        admin_accounts = [
+            {
+                "teacher_id": "T000001",
+                "name": "Admin 1",
+                "email": "admin@edulink.com",
+                "password": "admin123",
+                "is_admin": True
+            },
+            {
+                "teacher_id": "T000002",
+                "name": "Admin 2",
+                "email": "admin2@edulink.com",
+                "password": "admin123",
+                "is_admin": True
+            }
+        ]
         
-        # Check if admin exists
-        existing = db.query(Teacher).filter(Teacher.email == "admin@edulink.com").first()
-        if existing:
-            logger.info("Admin teacher already exists")
-            return
+        created_count = 0
         
-        # Create admin
-        admin = Teacher(
-            teacher_id="T000001",
-            name="Admin Teacher",
-            email="admin@edulink.com",
-            password_hash=get_password_hash("admin123")
-        )
+        for admin in admin_accounts:
+            # Check if admin exists
+            existing = db.query(Teacher).filter(Teacher.email == admin["email"]).first()
+            if existing:
+                logger.info(f"Admin '{admin['name']}' already exists")
+                continue
+            
+            # Create admin
+            admin_teacher = Teacher(
+                teacher_id=admin["teacher_id"],
+                name=admin["name"],
+                email=admin["email"],
+                password_hash=get_password_hash(admin["password"]),
+                is_admin=admin["is_admin"]
+            )
+            
+            db.add(admin_teacher)
+            created_count += 1
         
-        db.add(admin)
         db.commit()
         
-        logger.info("=" * 50)
-        logger.info("Admin teacher created!")
-        logger.info("Email: admin@edulink.com")
-        logger.info("Password: admin123")
-        logger.info("⚠️  CHANGE THIS PASSWORD AFTER FIRST LOGIN!")
-        logger.info("=" * 50)
+        if created_count > 0:
+            logger.info("=" * 50)
+            logger.info(f"{created_count} admin teacher(s) created!")
+            logger.info("=" * 50)
+            for admin in admin_accounts:
+                logger.info(f"\n  Name: {admin['name']}")
+                logger.info(f"  Email: {admin['email']}")
+                logger.info(f"  Password: {admin['password']}")
+            logger.info("\n⚠️  CHANGE PASSWORDS AFTER FIRST LOGIN!")
+            logger.info("=" * 50)
+        else:
+            logger.info("No new admin accounts created (all already exist)")
         
     except Exception as e:
         logger.error(f"Error creating admin: {e}")
@@ -59,7 +87,7 @@ def seed_admin():
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("Edulink Cloud Database Initialization")
+    print("EduLink BErCHAMPION Cloud Database Initialization")
     print("=" * 60)
     
     try:

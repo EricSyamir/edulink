@@ -1,59 +1,41 @@
 """
 Discipline Service
-Handles discipline record creation and student points management.
+Handles discipline record creation and misconduct statistics.
 """
 
-from typing import Optional
+from typing import Optional, List, Dict
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
+from sqlalchemy import func, and_
 from loguru import logger
 
-from app.models import Student, DisciplineRecord, StudentPoints
-from app.models.discipline_record import DisciplineType
-from app.config import settings
+from app.models import Student, DisciplineRecord
+from app.models.discipline_record import MisconductSeverity
+from app.schemas.student import MisconductStats
 
 
 class DisciplineService:
-    """Service for managing discipline records and student points."""
-    
-    @staticmethod
-    def get_points_change(record_type: str, custom_points: Optional[int] = None) -> int:
-        """
-        Get the points change for a discipline record.
-        
-        Args:
-            record_type: "reward" or "punishment"
-            custom_points: Optional custom points value
-        
-        Returns:
-            Points change value (positive for reward, negative for punishment)
-        """
-        if custom_points is not None:
-            return custom_points
-        
-        if record_type == "reward":
-            return settings.DEFAULT_REWARD_POINTS
-        else:
-            return settings.DEFAULT_PUNISHMENT_POINTS
+    """Service for managing discipline records and misconduct statistics."""
     
     @staticmethod
     def create_discipline_record(
         db: Session,
         student_id: int,
         teacher_id: int,
-        record_type: str,
-        points_change: Optional[int] = None,
-        reason: Optional[str] = None
+        severity: str,
+        misconduct_type: str,
+        notes: Optional[str] = None
     ) -> DisciplineRecord:
         """
-        Create a new discipline record and update student points.
+        Create a new discipline record (misconduct).
         
         Args:
             db: Database session
             student_id: Student's database ID
             teacher_id: Teacher's database ID (who created the record)
-            record_type: "reward" or "punishment"
-            points_change: Custom points value (uses default if None)
-            reason: Optional reason for the record
+            severity: "light" or "medium"
+            misconduct_type: The specific type of misconduct
+            notes: Optional notes about the incident
         
         Returns:
             Created DisciplineRecord object
@@ -66,103 +48,338 @@ class DisciplineService:
         if not student:
             raise ValueError(f"Student with id {student_id} not found")
         
-        # Calculate points change
-        final_points_change = DisciplineService.get_points_change(record_type, points_change)
-        
-        # Ensure punishment is negative and reward is positive
-        if record_type == "punishment" and final_points_change > 0:
-            final_points_change = -final_points_change
-        elif record_type == "reward" and final_points_change < 0:
-            final_points_change = -final_points_change
-        
         # Create discipline record
         discipline_record = DisciplineRecord(
             student_id=student_id,
             teacher_id=teacher_id,
-            type=DisciplineType(record_type),
-            points_change=final_points_change,
-            reason=reason
+            severity=MisconductSeverity(severity),
+            misconduct_type=misconduct_type,
+            notes=notes
         )
         
         db.add(discipline_record)
-        
-        # Update student points
-        student_points = db.query(StudentPoints).filter(
-            StudentPoints.student_id == student_id
-        ).first()
-        
-        if student_points:
-            student_points.current_points += final_points_change
-        else:
-            # Create points record if it doesn't exist
-            student_points = StudentPoints(
-                student_id=student_id,
-                current_points=settings.INITIAL_STUDENT_POINTS + final_points_change
-            )
-            db.add(student_points)
-        
         db.commit()
         db.refresh(discipline_record)
         
         logger.info(
-            f"Discipline record created: student_id={student_id}, "
-            f"type={record_type}, points_change={final_points_change}, "
-            f"new_total={student_points.current_points}"
+            f"Misconduct recorded: student_id={student_id}, "
+            f"severity={severity}, type={misconduct_type}"
         )
         
         return discipline_record
     
     @staticmethod
-    def get_student_points(db: Session, student_id: int) -> int:
+    def get_student_misconduct_stats(db: Session, student_id: int) -> MisconductStats:
         """
-        Get current points for a student.
+        Get misconduct statistics for a student.
         
         Args:
             db: Database session
             student_id: Student's database ID
         
         Returns:
-            Current points value
+            MisconductStats object with counts
         """
-        student_points = db.query(StudentPoints).filter(
-            StudentPoints.student_id == student_id
-        ).first()
+        # Get start of current month
+        now = datetime.utcnow()
+        month_start = datetime(now.year, now.month, 1)
         
-        if student_points:
-            return student_points.current_points
+        # Query all records for student
+        light_total = db.query(func.count(DisciplineRecord.id)).filter(
+            and_(
+                DisciplineRecord.student_id == student_id,
+                DisciplineRecord.severity == MisconductSeverity.LIGHT
+            )
+        ).scalar() or 0
         
-        # Return default if no record exists
-        return settings.INITIAL_STUDENT_POINTS
+        medium_total = db.query(func.count(DisciplineRecord.id)).filter(
+            and_(
+                DisciplineRecord.student_id == student_id,
+                DisciplineRecord.severity == MisconductSeverity.MEDIUM
+            )
+        ).scalar() or 0
+        
+        # Monthly counts
+        light_monthly = db.query(func.count(DisciplineRecord.id)).filter(
+            and_(
+                DisciplineRecord.student_id == student_id,
+                DisciplineRecord.severity == MisconductSeverity.LIGHT,
+                DisciplineRecord.created_at >= month_start
+            )
+        ).scalar() or 0
+        
+        medium_monthly = db.query(func.count(DisciplineRecord.id)).filter(
+            and_(
+                DisciplineRecord.student_id == student_id,
+                DisciplineRecord.severity == MisconductSeverity.MEDIUM,
+                DisciplineRecord.created_at >= month_start
+            )
+        ).scalar() or 0
+        
+        return MisconductStats(
+            light_total=light_total,
+            light_monthly=light_monthly,
+            medium_total=medium_total,
+            medium_monthly=medium_monthly
+        )
     
     @staticmethod
-    def initialize_student_points(db: Session, student_id: int) -> StudentPoints:
+    def get_form_statistics(db: Session, form: int) -> Dict:
         """
-        Initialize points record for a new student.
+        Get misconduct statistics for a specific form.
         
         Args:
             db: Database session
-            student_id: Student's database ID
+            form: Form number (1-5)
         
         Returns:
-            Created StudentPoints object
+            Dictionary with form statistics
         """
-        existing = db.query(StudentPoints).filter(
-            StudentPoints.student_id == student_id
-        ).first()
+        now = datetime.utcnow()
+        month_start = datetime(now.year, now.month, 1)
         
-        if existing:
-            return existing
+        # Get students in this form
+        students = db.query(Student).filter(Student.form == form).all()
+        student_ids = [s.id for s in students]
         
-        student_points = StudentPoints(
-            student_id=student_id,
-            current_points=settings.INITIAL_STUDENT_POINTS
+        if not student_ids:
+            return {
+                "form": form,
+                "total_students": 0,
+                "light_misconducts": 0,
+                "medium_misconducts": 0,
+                "light_monthly": 0,
+                "medium_monthly": 0
+            }
+        
+        # Total counts
+        light_total = db.query(func.count(DisciplineRecord.id)).filter(
+            and_(
+                DisciplineRecord.student_id.in_(student_ids),
+                DisciplineRecord.severity == MisconductSeverity.LIGHT
+            )
+        ).scalar() or 0
+        
+        medium_total = db.query(func.count(DisciplineRecord.id)).filter(
+            and_(
+                DisciplineRecord.student_id.in_(student_ids),
+                DisciplineRecord.severity == MisconductSeverity.MEDIUM
+            )
+        ).scalar() or 0
+        
+        # Monthly counts
+        light_monthly = db.query(func.count(DisciplineRecord.id)).filter(
+            and_(
+                DisciplineRecord.student_id.in_(student_ids),
+                DisciplineRecord.severity == MisconductSeverity.LIGHT,
+                DisciplineRecord.created_at >= month_start
+            )
+        ).scalar() or 0
+        
+        medium_monthly = db.query(func.count(DisciplineRecord.id)).filter(
+            and_(
+                DisciplineRecord.student_id.in_(student_ids),
+                DisciplineRecord.severity == MisconductSeverity.MEDIUM,
+                DisciplineRecord.created_at >= month_start
+            )
+        ).scalar() or 0
+        
+        return {
+            "form": form,
+            "total_students": len(students),
+            "light_misconducts": light_total,
+            "medium_misconducts": medium_total,
+            "light_monthly": light_monthly,
+            "medium_monthly": medium_monthly
+        }
+    
+    @staticmethod
+    def get_class_statistics(db: Session, class_name: str) -> Dict:
+        """
+        Get misconduct statistics for a specific class.
+        
+        Args:
+            db: Database session
+            class_name: Class name
+        
+        Returns:
+            Dictionary with class statistics
+        """
+        now = datetime.utcnow()
+        month_start = datetime(now.year, now.month, 1)
+        
+        # Get students in this class
+        students = db.query(Student).filter(Student.class_name == class_name).all()
+        student_ids = [s.id for s in students]
+        
+        if not student_ids:
+            return {
+                "class_name": class_name,
+                "form": 0,
+                "total_students": 0,
+                "light_misconducts": 0,
+                "medium_misconducts": 0,
+                "light_monthly": 0,
+                "medium_monthly": 0
+            }
+        
+        # Get form from first student
+        form = students[0].form if students else 0
+        
+        # Total counts
+        light_total = db.query(func.count(DisciplineRecord.id)).filter(
+            and_(
+                DisciplineRecord.student_id.in_(student_ids),
+                DisciplineRecord.severity == MisconductSeverity.LIGHT
+            )
+        ).scalar() or 0
+        
+        medium_total = db.query(func.count(DisciplineRecord.id)).filter(
+            and_(
+                DisciplineRecord.student_id.in_(student_ids),
+                DisciplineRecord.severity == MisconductSeverity.MEDIUM
+            )
+        ).scalar() or 0
+        
+        # Monthly counts
+        light_monthly = db.query(func.count(DisciplineRecord.id)).filter(
+            and_(
+                DisciplineRecord.student_id.in_(student_ids),
+                DisciplineRecord.severity == MisconductSeverity.LIGHT,
+                DisciplineRecord.created_at >= month_start
+            )
+        ).scalar() or 0
+        
+        medium_monthly = db.query(func.count(DisciplineRecord.id)).filter(
+            and_(
+                DisciplineRecord.student_id.in_(student_ids),
+                DisciplineRecord.severity == MisconductSeverity.MEDIUM,
+                DisciplineRecord.created_at >= month_start
+            )
+        ).scalar() or 0
+        
+        return {
+            "class_name": class_name,
+            "form": form,
+            "total_students": len(students),
+            "light_misconducts": light_total,
+            "medium_misconducts": medium_total,
+            "light_monthly": light_monthly,
+            "medium_monthly": medium_monthly
+        }
+    
+    @staticmethod
+    def get_analytics_trends(db: Session, days: int = 30) -> List[Dict]:
+        """
+        Get daily misconduct trends for the past N days.
+        
+        Args:
+            db: Database session
+            days: Number of days to look back
+        
+        Returns:
+            List of daily trend data
+        """
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days)
+        
+        trends = []
+        current_date = start_date
+        
+        while current_date <= end_date:
+            day_start = datetime(current_date.year, current_date.month, current_date.day)
+            day_end = day_start + timedelta(days=1)
+            
+            light_count = db.query(func.count(DisciplineRecord.id)).filter(
+                and_(
+                    DisciplineRecord.severity == MisconductSeverity.LIGHT,
+                    DisciplineRecord.created_at >= day_start,
+                    DisciplineRecord.created_at < day_end
+                )
+            ).scalar() or 0
+            
+            medium_count = db.query(func.count(DisciplineRecord.id)).filter(
+                and_(
+                    DisciplineRecord.severity == MisconductSeverity.MEDIUM,
+                    DisciplineRecord.created_at >= day_start,
+                    DisciplineRecord.created_at < day_end
+                )
+            ).scalar() or 0
+            
+            trends.append({
+                "date": current_date.strftime("%Y-%m-%d"),
+                "light_count": light_count,
+                "medium_count": medium_count
+            })
+            
+            current_date += timedelta(days=1)
+        
+        return trends
+    
+    @staticmethod
+    def get_top_offenders(db: Session, limit: int = 10) -> List[Dict]:
+        """
+        Get students with the most misconducts.
+        
+        Args:
+            db: Database session
+            limit: Maximum number of students to return
+        
+        Returns:
+            List of students with misconduct counts
+        """
+        # Query students with misconduct counts
+        results = db.query(
+            Student.id,
+            Student.name,
+            Student.student_id,
+            Student.class_name,
+            Student.form,
+            func.count(DisciplineRecord.id).label('total_misconducts')
+        ).join(
+            DisciplineRecord, Student.id == DisciplineRecord.student_id
+        ).group_by(
+            Student.id
+        ).order_by(
+            func.count(DisciplineRecord.id).desc()
+        ).limit(limit).all()
+        
+        return [
+            {
+                "id": r.id,
+                "name": r.name,
+                "student_id": r.student_id,
+                "class_name": r.class_name,
+                "form": r.form,
+                "total_misconducts": r.total_misconducts
+            }
+            for r in results
+        ]
+    
+    @staticmethod
+    def promote_form(db: Session, from_form: int, to_form: int) -> int:
+        """
+        Promote all students from one form to another.
+        
+        Args:
+            db: Database session
+            from_form: Current form level
+            to_form: New form level
+        
+        Returns:
+            Number of students promoted
+        """
+        if to_form > 5:
+            raise ValueError("Cannot promote beyond Form 5")
+        
+        count = db.query(Student).filter(Student.form == from_form).update(
+            {"form": to_form}
         )
-        
-        db.add(student_points)
         db.commit()
-        db.refresh(student_points)
         
-        return student_points
+        logger.info(f"Promoted {count} students from Form {from_form} to Form {to_form}")
+        
+        return count
 
 
 # Global service instance

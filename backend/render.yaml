@@ -25,12 +25,8 @@ services:
         value: 0.5
       - key: FACE_MODEL_NAME
         value: buffalo_sc
-      - key: DEFAULT_REWARD_POINTS
-        value: 10
-      - key: DEFAULT_PUNISHMENT_POINTS
-        value: -10
-      - key: INITIAL_STUDENT_POINTS
-        value: 100
+      - key: FACE_RECOGNITION_ENABLED
+        value: True
       - key: DEBUG
         value: False
       - key: CORS_ORIGINS

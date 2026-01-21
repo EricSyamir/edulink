@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
-import { studentApi } from '../services/api'
+import { studentApi, disciplineApi } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { 
   Search, 
@@ -12,31 +12,34 @@ import {
   ChevronRight,
   Loader2,
   UserPlus,
-  Award,
-  AlertTriangle
+  AlertTriangle,
+  AlertCircle,
+  BarChart3,
+  Calendar
 } from 'lucide-react'
 import clsx from 'clsx'
-import PointsBadge from '../components/PointsBadge'
+import MisconductBadge from '../components/MisconductBadge'
 
 export default function DashboardPage() {
   const { teacher } = useAuth()
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
   
+  // Fetch analytics
+  const { data: analytics, isLoading: analyticsLoading } = useQuery({
+    queryKey: ['analytics'],
+    queryFn: () => disciplineApi.getAnalytics(30),
+    staleTime: 60000, // Cache for 1 minute
+  })
+  
   // Fetch students
-  const { data: students = [], isLoading } = useQuery({
+  const { data: students = [], isLoading: studentsLoading } = useQuery({
     queryKey: ['students', searchQuery],
     queryFn: () => studentApi.list({ search: searchQuery || undefined, limit: 20 }),
     keepPreviousData: true,
   })
   
-  // Calculate statistics
-  const stats = {
-    total: students.length,
-    highPoints: students.filter(s => s.current_points >= 100).length,
-    lowPoints: students.filter(s => s.current_points < 50).length,
-    withFace: students.filter(s => s.has_face_embedding).length,
-  }
+  const isLoading = analyticsLoading || studentsLoading
   
   const handleSearch = (e) => {
     e.preventDefault()
@@ -72,31 +75,66 @@ export default function DashboardPage() {
         <StatCard
           icon={Users}
           label="Total Students"
-          value={stats.total}
+          value={analytics?.total_students || 0}
           color="primary"
         />
         <StatCard
-          icon={Award}
-          label="High Achievers"
-          value={stats.highPoints}
-          subtext="≥100 points"
-          color="emerald"
+          icon={AlertCircle}
+          label="Light Misconducts"
+          value={analytics?.total_light_misconducts || 0}
+          subtext={`${analytics?.monthly_light_misconducts || 0} this month`}
+          color="blue"
         />
         <StatCard
           icon={AlertTriangle}
-          label="Need Attention"
-          value={stats.lowPoints}
-          subtext="<50 points"
+          label="Medium Misconducts"
+          value={analytics?.total_medium_misconducts || 0}
+          subtext={`${analytics?.monthly_medium_misconducts || 0} this month`}
           color="amber"
         />
         <StatCard
           icon={Camera}
           label="Face Registered"
-          value={stats.withFace}
-          subtext={`${Math.round((stats.withFace / Math.max(stats.total, 1)) * 100)}%`}
-          color="blue"
+          value={students.filter(s => s.has_face_embedding).length}
+          subtext={`${Math.round((students.filter(s => s.has_face_embedding).length / Math.max(students.length, 1)) * 100)}%`}
+          color="emerald"
         />
       </div>
+      
+      {/* Top Offenders */}
+      {analytics?.top_offenders?.length > 0 && (
+        <div className="card">
+          <div className="p-4 lg:p-6 border-b border-surface-200">
+            <h2 className="font-display text-xl font-semibold text-surface-900">
+              Students Requiring Attention
+            </h2>
+          </div>
+          <div className="divide-y divide-surface-100">
+            {analytics.top_offenders.slice(0, 5).map((student, index) => (
+              <button
+                key={student.id}
+                onClick={() => navigate(`/students/${student.id}`)}
+                className="w-full flex items-center gap-4 p-4 lg:px-6 hover:bg-surface-50 transition-colors text-left animate-slide-up"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                  {student.name.charAt(0)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-surface-900 truncate">{student.name}</p>
+                  <p className="text-sm text-surface-500">
+                    {student.student_id} • {student.class_name} • Form {student.form}
+                  </p>
+                </div>
+                <span className="px-3 py-1 rounded-full bg-red-100 text-red-700 font-semibold text-sm">
+                  {student.total_misconducts} misconducts
+                </span>
+                <ChevronRight className="w-5 h-5 text-surface-400 flex-shrink-0" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       
       {/* Search and Student List */}
       <div className="card">
@@ -174,6 +212,7 @@ function StatCard({ icon: Icon, label, value, subtext, color }) {
     emerald: 'bg-emerald-50 text-emerald-600',
     amber: 'bg-amber-50 text-amber-600',
     blue: 'bg-blue-50 text-blue-600',
+    red: 'bg-red-50 text-red-600',
   }
   
   return (
@@ -189,6 +228,8 @@ function StatCard({ icon: Icon, label, value, subtext, color }) {
 }
 
 function StudentRow({ student, index, onClick }) {
+  const totalMisconducts = (student.misconduct_stats?.light_total || 0) + (student.misconduct_stats?.medium_total || 0)
+  
   return (
     <button
       onClick={onClick}
@@ -204,12 +245,15 @@ function StudentRow({ student, index, onClick }) {
       <div className="flex-1 min-w-0">
         <p className="font-medium text-surface-900 truncate">{student.name}</p>
         <p className="text-sm text-surface-500">
-          {student.student_id} • {student.class_name}
+          {student.student_id} • {student.class_name} • Form {student.form}
         </p>
       </div>
       
-      {/* Points */}
-      <PointsBadge points={student.current_points} />
+      {/* Misconduct Badge */}
+      <MisconductBadge 
+        light={student.misconduct_stats?.light_total || 0} 
+        medium={student.misconduct_stats?.medium_total || 0} 
+      />
       
       {/* Arrow */}
       <ChevronRight className="w-5 h-5 text-surface-400 flex-shrink-0" />

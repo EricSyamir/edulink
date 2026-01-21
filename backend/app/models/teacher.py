@@ -3,7 +3,7 @@ Teacher Model
 Represents a teacher who can log in and manage discipline records.
 """
 
-from sqlalchemy import Column, Integer, String, DateTime, Index
+from sqlalchemy import Column, Integer, String, DateTime, Index, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -20,6 +20,7 @@ class Teacher(Base):
         name: Teacher's full name
         email: Unique email for authentication
         password_hash: Bcrypt hashed password
+        is_admin: Whether this teacher has admin privileges
         created_at: Timestamp when record was created
         updated_at: Timestamp when record was last updated
     """
@@ -31,6 +32,7 @@ class Teacher(Base):
     name = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
+    is_admin = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
@@ -43,4 +45,4 @@ class Teacher(Base):
     )
     
     def __repr__(self):
-        return f"<Teacher(id={self.id}, teacher_id='{self.teacher_id}', name='{self.name}')>"
+        return f"<Teacher(id={self.id}, teacher_id='{self.teacher_id}', name='{self.name}', is_admin={self.is_admin})>"

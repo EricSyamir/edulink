@@ -13,21 +13,21 @@ import {
   CameraOff
 } from 'lucide-react'
 import clsx from 'clsx'
-import PointsBadge from '../components/PointsBadge'
+import MisconductBadge from '../components/MisconductBadge'
 
 export default function StudentsPage() {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
   const [classFilter, setClassFilter] = useState('')
-  const [standardFilter, setStandardFilter] = useState('')
+  const [formFilter, setFormFilter] = useState('')
   
   // Fetch students with filters
   const { data: students = [], isLoading } = useQuery({
-    queryKey: ['students', searchQuery, classFilter, standardFilter],
+    queryKey: ['students', searchQuery, classFilter, formFilter],
     queryFn: () => studentApi.list({ 
       search: searchQuery || undefined,
       class_name: classFilter || undefined,
-      standard: standardFilter || undefined,
+      form: formFilter || undefined,
       limit: 100,
     }),
     keepPreviousData: true,
@@ -84,15 +84,15 @@ export default function StudentsPage() {
             ))}
           </select>
           
-          {/* Standard filter */}
+          {/* Form filter */}
           <select
-            value={standardFilter}
-            onChange={(e) => setStandardFilter(e.target.value)}
+            value={formFilter}
+            onChange={(e) => setFormFilter(e.target.value)}
             className="input w-full lg:w-40"
           >
-            <option value="">All Standards</option>
-            {[1, 2, 3, 4, 5, 6].map(std => (
-              <option key={std} value={std}>Standard {std}</option>
+            <option value="">All Forms</option>
+            {[1, 2, 3, 4, 5].map(form => (
+              <option key={form} value={form}>Form {form}</option>
             ))}
           </select>
         </div>
@@ -101,12 +101,12 @@ export default function StudentsPage() {
       {/* Results count */}
       <div className="flex items-center justify-between text-sm text-surface-500">
         <p>{students.length} student{students.length !== 1 ? 's' : ''} found</p>
-        {(searchQuery || classFilter || standardFilter) && (
+        {(searchQuery || classFilter || formFilter) && (
           <button
             onClick={() => {
               setSearchQuery('')
               setClassFilter('')
-              setStandardFilter('')
+              setFormFilter('')
             }}
             className="text-primary-600 hover:text-primary-700 font-medium"
           >
@@ -126,11 +126,11 @@ export default function StudentsPage() {
           <div className="p-12 text-center">
             <Users className="w-12 h-12 text-surface-300 mx-auto" />
             <p className="mt-2 text-surface-500">
-              {searchQuery || classFilter || standardFilter 
+              {searchQuery || classFilter || formFilter 
                 ? 'No students found matching your filters' 
                 : 'No students registered yet'}
             </p>
-            {!searchQuery && !classFilter && !standardFilter && (
+            {!searchQuery && !classFilter && !formFilter && (
               <Link to="/students/add" className="btn-primary mt-4 inline-flex">
                 <UserPlus className="w-5 h-5" />
                 Add First Student
@@ -144,8 +144,8 @@ export default function StudentsPage() {
                 <tr>
                   <th className="px-6 py-4 text-left text-sm font-medium text-surface-600">Student</th>
                   <th className="px-6 py-4 text-left text-sm font-medium text-surface-600">Class</th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-surface-600">Standard</th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-surface-600">Points</th>
+                  <th className="px-6 py-4 text-left text-sm font-medium text-surface-600">Form</th>
+                  <th className="px-6 py-4 text-left text-sm font-medium text-surface-600">Misconducts</th>
                   <th className="px-6 py-4 text-left text-sm font-medium text-surface-600">Face</th>
                   <th className="px-6 py-4"></th>
                 </tr>
@@ -170,9 +170,13 @@ export default function StudentsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-surface-700">{student.class_name}</td>
-                    <td className="px-6 py-4 text-surface-700">Standard {student.standard}</td>
+                    <td className="px-6 py-4 text-surface-700">Form {student.form}</td>
                     <td className="px-6 py-4">
-                      <PointsBadge points={student.current_points} />
+                      <MisconductBadge 
+                        light={student.misconduct_stats?.light_total || 0}
+                        medium={student.misconduct_stats?.medium_total || 0}
+                        showBreakdown
+                      />
                     </td>
                     <td className="px-6 py-4">
                       {student.has_face_embedding ? (

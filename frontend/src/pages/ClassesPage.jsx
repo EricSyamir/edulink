@@ -1,0 +1,293 @@
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { Link, useNavigate } from 'react-router-dom'
+import { disciplineApi, studentApi } from '../services/api'
+import { 
+  School, 
+  ChevronRight, 
+  Loader2,
+  Users,
+  AlertCircle,
+  AlertTriangle,
+  Filter,
+  Printer
+} from 'lucide-react'
+import clsx from 'clsx'
+
+export default function ClassesPage() {
+  const navigate = useNavigate()
+  const [selectedClass, setSelectedClass] = useState(null)
+  const [formFilter, setFormFilter] = useState('')
+  
+  // Fetch class statistics
+  const { data: classStats = [], isLoading } = useQuery({
+    queryKey: ['class-stats', formFilter],
+    queryFn: () => disciplineApi.getClassesStats(formFilter || null),
+    staleTime: 60000, // Cache for 1 minute
+  })
+  
+  // Fetch students for selected class
+  const { data: classStudents = [], isLoading: studentsLoading } = useQuery({
+    queryKey: ['students', 'class', selectedClass],
+    queryFn: () => studentApi.list({ class_name: selectedClass, limit: 100 }),
+    enabled: !!selectedClass,
+  })
+  
+  // Handle print
+  const handlePrint = () => {
+    window.print()
+  }
+  
+  // Group classes by form
+  const classesByForm = classStats.reduce((acc, stat) => {
+    const form = stat.form
+    if (!acc[form]) acc[form] = []
+    acc[form].push(stat)
+    return acc
+  }, {})
+  
+  return (
+    <div className="max-w-6xl mx-auto space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-bold text-surface-900">Classes Overview</h1>
+          <p className="text-surface-500 mt-1">
+            View misconduct statistics by class
+          </p>
+        </div>
+        
+        <div className="flex gap-3 no-print">
+          <select
+            value={formFilter}
+            onChange={(e) => setFormFilter(e.target.value)}
+            className="input w-40"
+          >
+            <option value="">All Forms</option>
+            {[1, 2, 3, 4, 5].map(form => (
+              <option key={form} value={form}>Form {form}</option>
+            ))}
+          </select>
+          
+          <button onClick={handlePrint} className="btn-secondary">
+            <Printer className="w-5 h-5" />
+            Print Report
+          </button>
+        </div>
+      </div>
+      
+      {/* Classes by Form */}
+      {isLoading ? (
+        <div className="card p-12 text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" />
+          <p className="mt-2 text-surface-500">Loading class statistics...</p>
+        </div>
+      ) : classStats.length === 0 ? (
+        <div className="card p-12 text-center">
+          <School className="w-12 h-12 text-surface-300 mx-auto" />
+          <p className="mt-2 text-surface-500">No classes found</p>
+        </div>
+      ) : formFilter ? (
+        // Single form view
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {classStats.map((stat, index) => (
+            <ClassCard
+              key={stat.class_name}
+              stat={stat}
+              index={index}
+              isSelected={selectedClass === stat.class_name}
+              onClick={() => setSelectedClass(selectedClass === stat.class_name ? null : stat.class_name)}
+            />
+          ))}
+        </div>
+      ) : (
+        // All forms view
+        Object.entries(classesByForm).sort(([a], [b]) => Number(a) - Number(b)).map(([form, classes]) => (
+          <div key={form} className="space-y-4">
+            <h2 className="font-display text-xl font-semibold text-surface-900">
+              Form {form}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {classes.map((stat, index) => (
+                <ClassCard
+                  key={stat.class_name}
+                  stat={stat}
+                  index={index}
+                  isSelected={selectedClass === stat.class_name}
+                  onClick={() => setSelectedClass(selectedClass === stat.class_name ? null : stat.class_name)}
+                />
+              ))}
+            </div>
+          </div>
+        ))
+      )}
+      
+      {/* Selected Class Students */}
+      {selectedClass && (
+        <div className="card animate-slide-up">
+          <div className="p-4 lg:p-6 border-b border-surface-200 flex items-center justify-between">
+            <h2 className="font-display text-xl font-semibold text-surface-900">
+              {selectedClass} Students
+            </h2>
+            <span className="text-sm text-surface-500">{classStudents.length} students</span>
+          </div>
+          
+          {studentsLoading ? (
+            <div className="p-12 text-center">
+              <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" />
+            </div>
+          ) : classStudents.length === 0 ? (
+            <div className="p-12 text-center">
+              <Users className="w-12 h-12 text-surface-300 mx-auto" />
+              <p className="mt-2 text-surface-500">No students in {selectedClass}</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-surface-50 border-b border-surface-200">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-surface-600">Student</th>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-surface-600">Light</th>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-surface-600">Medium</th>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-surface-600">Total</th>
+                    <th className="px-6 py-4"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-surface-100">
+                  {classStudents.map((student) => {
+                    const lightTotal = student.misconduct_stats?.light_total || 0
+                    const mediumTotal = student.misconduct_stats?.medium_total || 0
+                    const total = lightTotal + mediumTotal
+                    
+                    return (
+                      <tr 
+                        key={student.id}
+                        onClick={() => navigate(`/students/${student.id}`)}
+                        className="hover:bg-surface-50 cursor-pointer transition-colors"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-medium flex-shrink-0">
+                              {student.name.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="font-medium text-surface-900">{student.name}</p>
+                              <p className="text-sm text-surface-500">{student.student_id}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-medium">
+                            {lightTotal}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-sm font-medium">
+                            {mediumTotal}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={clsx(
+                            'px-2 py-1 rounded-full text-sm font-medium',
+                            total === 0 ? 'bg-emerald-100 text-emerald-700' :
+                            total <= 3 ? 'bg-amber-100 text-amber-700' :
+                            'bg-red-100 text-red-700'
+                          )}>
+                            {total}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <ChevronRight className="w-5 h-5 text-surface-400" />
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ClassCard({ stat, index, isSelected, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      className={clsx(
+        'card p-6 cursor-pointer transition-all animate-slide-up',
+        isSelected 
+          ? 'ring-2 ring-primary-500 bg-primary-50/50' 
+          : 'hover:shadow-md hover:border-surface-300'
+      )}
+      style={{ animationDelay: `${index * 50}ms` }}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="w-12 h-12 rounded-xl bg-primary-100 flex items-center justify-center">
+          <School className="w-6 h-6 text-primary-600" />
+        </div>
+        <ChevronRight className={clsx(
+          'w-5 h-5 text-surface-400 transition-transform',
+          isSelected && 'rotate-90'
+        )} />
+      </div>
+      
+      <h3 className="text-xl font-bold text-surface-900">{stat.class_name}</h3>
+      <p className="text-sm text-surface-500">Form {stat.form}</p>
+      
+      <div className="mt-4 space-y-3">
+        <div className="flex items-center justify-between text-sm">
+          <span className="flex items-center gap-2 text-surface-600">
+            <Users className="w-4 h-4" />
+            Students
+          </span>
+          <span className="font-semibold text-surface-900">{stat.total_students}</span>
+        </div>
+        
+        <div className="flex items-center justify-between text-sm">
+          <span className="flex items-center gap-2 text-blue-600">
+            <AlertCircle className="w-4 h-4" />
+            Light
+          </span>
+          <span className="font-semibold text-surface-900">
+            {stat.light_misconducts}
+            <span className="text-xs text-surface-400 ml-1">({stat.light_monthly} monthly)</span>
+          </span>
+        </div>
+        
+        <div className="flex items-center justify-between text-sm">
+          <span className="flex items-center gap-2 text-orange-600">
+            <AlertTriangle className="w-4 h-4" />
+            Medium
+          </span>
+          <span className="font-semibold text-surface-900">
+            {stat.medium_misconducts}
+            <span className="text-xs text-surface-400 ml-1">({stat.medium_monthly} monthly)</span>
+          </span>
+        </div>
+      </div>
+      
+      {/* Progress bar */}
+      <div className="mt-4 pt-4 border-t border-surface-200">
+        <div className="h-2 bg-surface-100 rounded-full overflow-hidden">
+          <div className="h-full flex">
+            <div 
+              className="bg-blue-500 transition-all"
+              style={{ 
+                width: `${(stat.light_misconducts / Math.max(stat.light_misconducts + stat.medium_misconducts, 1)) * 100}%` 
+              }}
+            />
+            <div 
+              className="bg-orange-500 transition-all"
+              style={{ 
+                width: `${(stat.medium_misconducts / Math.max(stat.light_misconducts + stat.medium_misconducts, 1)) * 100}%` 
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
