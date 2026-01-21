@@ -8,8 +8,10 @@ from app.schemas.student import (
     StudentCreate,
     StudentUpdate,
     StudentResponse,
-    StudentWithPoints,
+    StudentWithMisconducts,
     StudentIdentifyResponse,
+    MisconductStats,
+    BulkFormUpdate,
 )
 from app.schemas.teacher import (
     TeacherBase,
@@ -21,6 +23,10 @@ from app.schemas.discipline import (
     DisciplineRecordCreate,
     DisciplineRecordResponse,
     DisciplineRecordWithDetails,
+    MisconductTypeList,
+    FormStatistics,
+    ClassStatistics,
+    DashboardAnalytics,
 )
 from app.schemas.auth import (
     LoginRequest,
@@ -32,8 +38,10 @@ __all__ = [
     "StudentCreate",
     "StudentUpdate",
     "StudentResponse",
-    "StudentWithPoints",
+    "StudentWithMisconducts",
     "StudentIdentifyResponse",
+    "MisconductStats",
+    "BulkFormUpdate",
     # Teacher schemas
     "TeacherBase",
     "TeacherCreate",
@@ -43,6 +51,10 @@ __all__ = [
     "DisciplineRecordCreate",
     "DisciplineRecordResponse",
     "DisciplineRecordWithDetails",
+    "MisconductTypeList",
+    "FormStatistics",
+    "ClassStatistics",
+    "DashboardAnalytics",
     # Auth schemas
     "LoginRequest",
 ]
