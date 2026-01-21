@@ -50,12 +50,25 @@ export default function ClassesPage() {
     return acc
   }, {})
 
-  const classDistribution = classStats.map((s) => ({
-    key: `${s.class_name}-${s.form}`,
-    label: s.class_name,
-    meta: `Form ${s.form} • ${s.total_students} students`,
-    light: s.light_misconducts || 0,
-    medium: s.medium_misconducts || 0,
+  // Aggregate misconduct types across all classes
+  const misconductTypeDistribution = classStats.reduce((acc, stat) => {
+    const breakdown = stat.misconduct_type_breakdown || {}
+    Object.entries(breakdown).forEach(([type, counts]) => {
+      if (!acc[type]) {
+        acc[type] = { light: 0, medium: 0 }
+      }
+      acc[type].light += counts.light || 0
+      acc[type].medium += counts.medium || 0
+    })
+    return acc
+  }, {})
+  
+  const misconductTypeItems = Object.entries(misconductTypeDistribution).map(([type, counts]) => ({
+    key: type,
+    label: type,
+    meta: `${counts.light + counts.medium} total incidents`,
+    light: counts.light || 0,
+    medium: counts.medium || 0,
   }))
   
   return (

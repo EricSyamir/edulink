@@ -41,12 +41,25 @@ export default function FormsPage() {
     setTimeout(() => document.body.classList.remove('printing-report'), 300)
   }
 
-  const formDistribution = formStats.map((s) => ({
-    key: `form-${s.form}`,
-    label: `Form ${s.form}`,
-    meta: `${s.total_students} students`,
-    light: s.light_misconducts || 0,
-    medium: s.medium_misconducts || 0,
+  // Aggregate misconduct types across all forms
+  const misconductTypeDistribution = formStats.reduce((acc, stat) => {
+    const breakdown = stat.misconduct_type_breakdown || {}
+    Object.entries(breakdown).forEach(([type, counts]) => {
+      if (!acc[type]) {
+        acc[type] = { light: 0, medium: 0 }
+      }
+      acc[type].light += counts.light || 0
+      acc[type].medium += counts.medium || 0
+    })
+    return acc
+  }, {})
+  
+  const misconductTypeItems = Object.entries(misconductTypeDistribution).map(([type, counts]) => ({
+    key: type,
+    label: type,
+    meta: `${counts.light + counts.medium} total incidents`,
+    light: counts.light || 0,
+    medium: counts.medium || 0,
   }))
   
   return (
@@ -82,10 +95,10 @@ export default function FormsPage() {
           <span className="font-medium">Distribution Dashboard</span>
         </div>
         <DistributionBars
-          title="Distribution of Misconducts by Forms"
-          subtitle="Stacked light vs medium counts"
-          items={formDistribution}
-          maxItems={5}
+          title="Distribution of Misconducts by Type"
+          subtitle="Breakdown by misconduct category across all forms"
+          items={misconductTypeItems}
+          maxItems={10}
         />
       </div>
       

@@ -253,6 +253,9 @@ def get_analytics(
     # Get top offenders
     top_offenders = discipline_service.get_top_offenders(db, 10)
     
+    # Get misconduct type breakdown for all students
+    misconduct_type_breakdown = discipline_service.get_misconduct_type_breakdown(db)
+    
     return DashboardAnalytics(
         total_students=total_students,
         total_light_misconducts=total_light,
@@ -260,7 +263,8 @@ def get_analytics(
         monthly_light_misconducts=monthly_light,
         monthly_medium_misconducts=monthly_medium,
         trends=trends,
-        top_offenders=top_offenders
+        top_offenders=top_offenders,
+        misconduct_type_breakdown=misconduct_type_breakdown
     )
 
 

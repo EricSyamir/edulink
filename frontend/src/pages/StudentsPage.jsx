@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
-import { studentApi } from '../services/api'
+import { studentApi, disciplineApi } from '../services/api'
 import { 
   Search, 
   UserPlus, 
@@ -36,16 +36,26 @@ export default function StudentsPage() {
     keepPreviousData: true,
   })
   
+  // Fetch analytics for misconduct type breakdown
+  const { data: analytics } = useQuery({
+    queryKey: ['analytics'],
+    queryFn: () => disciplineApi.getAnalytics(30),
+    staleTime: 60000,
+  })
+  
   // Get unique classes for filter dropdown
   const uniqueClasses = [...new Set(students.map(s => s.class_name))].sort()
   
-  const studentDistribution = students.map((s) => ({
-    key: s.id,
-    label: s.name,
-    meta: `${s.student_id} • ${s.class_name} • Form ${s.form}`,
-    light: s.misconduct_stats?.light_total || 0,
-    medium: s.misconduct_stats?.medium_total || 0,
-  }))
+  // Transform misconduct type breakdown into distribution items
+  const misconductTypeDistribution = analytics?.misconduct_type_breakdown
+    ? Object.entries(analytics.misconduct_type_breakdown).map(([type, counts]) => ({
+        key: type,
+        label: type,
+        meta: `${counts.light + counts.medium} total incidents`,
+        light: counts.light || 0,
+        medium: counts.medium || 0,
+      }))
+    : []
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -102,9 +112,9 @@ export default function StudentsPage() {
           <span className="font-medium">Distribution Dashboard</span>
         </div>
         <DistributionBars
-          title="Distribution of Misconducts by Students"
-          subtitle="Stacked light vs medium counts (top offenders)"
-          items={studentDistribution}
+          title="Distribution of Misconducts by Type"
+          subtitle="Breakdown by misconduct category (dropdown options)"
+          items={misconductTypeDistribution}
           maxItems={10}
         />
       </div>

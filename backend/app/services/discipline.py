@@ -139,7 +139,7 @@ class DisciplineService:
             form: Form number (1-5)
         
         Returns:
-            Dictionary with form statistics
+            Dictionary with form statistics including misconduct type breakdowns
         """
         now = datetime.utcnow()
         month_start = datetime(now.year, now.month, 1)
@@ -155,7 +155,8 @@ class DisciplineService:
                 "light_misconducts": 0,
                 "medium_misconducts": 0,
                 "light_monthly": 0,
-                "medium_monthly": 0
+                "medium_monthly": 0,
+                "misconduct_type_breakdown": {}
             }
         
         # Total counts - cast enum column to string for comparison
@@ -190,13 +191,32 @@ class DisciplineService:
             )
         ).scalar() or 0
         
+        # Get misconduct type breakdown
+        misconduct_type_counts = db.query(
+            DisciplineRecord.misconduct_type,
+            cast(DisciplineRecord.severity, String).label('severity'),
+            func.count(DisciplineRecord.id).label('count')
+        ).filter(
+            DisciplineRecord.student_id.in_(student_ids)
+        ).group_by(
+            DisciplineRecord.misconduct_type,
+            cast(DisciplineRecord.severity, String)
+        ).all()
+        
+        misconduct_type_breakdown = {}
+        for misconduct_type, severity, count in misconduct_type_counts:
+            if misconduct_type not in misconduct_type_breakdown:
+                misconduct_type_breakdown[misconduct_type] = {"light": 0, "medium": 0}
+            misconduct_type_breakdown[misconduct_type][severity] = count
+        
         return {
             "form": form,
             "total_students": len(students),
             "light_misconducts": light_total,
             "medium_misconducts": medium_total,
             "light_monthly": light_monthly,
-            "medium_monthly": medium_monthly
+            "medium_monthly": medium_monthly,
+            "misconduct_type_breakdown": misconduct_type_breakdown
         }
     
     @staticmethod
@@ -209,7 +229,7 @@ class DisciplineService:
             class_name: Class name
         
         Returns:
-            Dictionary with class statistics
+            Dictionary with class statistics including misconduct type breakdowns
         """
         now = datetime.utcnow()
         month_start = datetime(now.year, now.month, 1)
@@ -226,7 +246,8 @@ class DisciplineService:
                 "light_misconducts": 0,
                 "medium_misconducts": 0,
                 "light_monthly": 0,
-                "medium_monthly": 0
+                "medium_monthly": 0,
+                "misconduct_type_breakdown": {}
             }
         
         # Get form from first student
@@ -264,6 +285,24 @@ class DisciplineService:
             )
         ).scalar() or 0
         
+        # Get misconduct type breakdown
+        misconduct_type_counts = db.query(
+            DisciplineRecord.misconduct_type,
+            cast(DisciplineRecord.severity, String).label('severity'),
+            func.count(DisciplineRecord.id).label('count')
+        ).filter(
+            DisciplineRecord.student_id.in_(student_ids)
+        ).group_by(
+            DisciplineRecord.misconduct_type,
+            cast(DisciplineRecord.severity, String)
+        ).all()
+        
+        misconduct_type_breakdown = {}
+        for misconduct_type, severity, count in misconduct_type_counts:
+            if misconduct_type not in misconduct_type_breakdown:
+                misconduct_type_breakdown[misconduct_type] = {"light": 0, "medium": 0}
+            misconduct_type_breakdown[misconduct_type][severity] = count
+        
         return {
             "class_name": class_name,
             "form": form,
@@ -271,8 +310,43 @@ class DisciplineService:
             "light_misconducts": light_total,
             "medium_misconducts": medium_total,
             "light_monthly": light_monthly,
-            "medium_monthly": medium_monthly
+            "medium_monthly": medium_monthly,
+            "misconduct_type_breakdown": misconduct_type_breakdown
         }
+    
+    @staticmethod
+    def get_misconduct_type_breakdown(db: Session, student_ids: Optional[List[int]] = None) -> Dict:
+        """
+        Get breakdown of misconducts by type.
+        
+        Args:
+            db: Database session
+            student_ids: Optional list of student IDs to filter by
+        
+        Returns:
+            Dictionary mapping misconduct_type to counts by severity
+        """
+        query = db.query(
+            DisciplineRecord.misconduct_type,
+            cast(DisciplineRecord.severity, String).label('severity'),
+            func.count(DisciplineRecord.id).label('count')
+        )
+        
+        if student_ids:
+            query = query.filter(DisciplineRecord.student_id.in_(student_ids))
+        
+        results = query.group_by(
+            DisciplineRecord.misconduct_type,
+            cast(DisciplineRecord.severity, String)
+        ).all()
+        
+        breakdown = {}
+        for misconduct_type, severity, count in results:
+            if misconduct_type not in breakdown:
+                breakdown[misconduct_type] = {"light": 0, "medium": 0}
+            breakdown[misconduct_type][severity] = count
+        
+        return breakdown
     
     @staticmethod
     def get_analytics_trends(db: Session, days: int = 30) -> List[Dict]:
