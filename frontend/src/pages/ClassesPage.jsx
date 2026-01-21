@@ -120,10 +120,10 @@ export default function ClassesPage() {
           <span className="font-medium">Distribution Dashboard</span>
         </div>
         <DistributionBars
-          title="Distribution of Misconducts by Classes"
-          subtitle="Stacked light vs medium counts (top classes)"
-          items={classDistribution}
-          maxItems={12}
+          title="Distribution of Misconducts by Type"
+          subtitle="Breakdown by misconduct category across all classes"
+          items={misconductTypeItems}
+          maxItems={10}
         />
       </div>
       
