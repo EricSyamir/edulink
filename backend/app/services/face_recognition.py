@@ -45,15 +45,26 @@ def get_face_analyzer():
             
             logger.info(f"Initializing InsightFace with model: {settings.FACE_MODEL_NAME}")
             
-            # Check if model exists in pre-downloaded location
+            # Check if model already exists to avoid re-downloading
             model_path = f"/root/.insightface/models/{settings.FACE_MODEL_NAME}"
-            if os.path.exists(model_path):
-                logger.info(f"Using pre-downloaded model at {model_path}")
+            model_exists = os.path.exists(model_path) and os.path.isdir(model_path)
             
-            # Initialize FaceAnalysis - it will use pre-downloaded model if available
+            if model_exists:
+                # Check if all required ONNX files exist
+                required_files = ['w600k_r50.onnx', 'det_10g.onnx', '1k3d68.onnx', '2d106det.onnx', 'genderage.onnx']
+                all_files_exist = all(os.path.exists(os.path.join(model_path, f)) for f in required_files)
+                
+                if all_files_exist:
+                    logger.info(f"Using existing model at {model_path}")
+                else:
+                    logger.warning(f"Model directory exists but files incomplete, will re-download")
+                    model_exists = False
+            
+            # Initialize FaceAnalysis
+            # If model doesn't exist, it will download automatically
             _face_analyzer = FaceAnalysis(
                 name=settings.FACE_MODEL_NAME,
-                root="/root/.insightface",  # Point to where we pre-downloaded the model
+                root="/root/.insightface",
                 providers=['CPUExecutionProvider']  # Use CPU, add CUDAExecutionProvider for GPU
             )
             

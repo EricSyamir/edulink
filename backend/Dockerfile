@@ -13,9 +13,9 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download InsightFace buffalo_l model during build using Python
-# This ensures the model is downloaded to the correct location with proper structure
-RUN python -c "import os; os.makedirs('/root/.insightface/models', exist_ok=True); from insightface.app import FaceAnalysis; print('Downloading buffalo_l model...'); fa = FaceAnalysis(name='buffalo_l', root='/root/.insightface', providers=['CPUExecutionProvider']); fa.prepare(ctx_id=0, det_size=(640, 640)); print('Model downloaded and verified successfully')"
+# Note: Model will be downloaded on first use at runtime
+# Pre-downloading during build is unreliable due to network issues
+# The model will be cached after first download
 
 # Copy application code
 COPY . .
