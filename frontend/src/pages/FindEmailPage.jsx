@@ -8,33 +8,47 @@ import toast from 'react-hot-toast'
 function LogoDisplay() {
   const [shieldError, setShieldError] = useState(false)
   const [circleError, setCircleError] = useState(false)
+  const [edulinkError, setEdulinkError] = useState(false)
   
   return (
-    <div className="flex items-center justify-center gap-4 mb-6">
-      {/* SMK Bercham Shield Logo - Made bigger */}
-      <div className="w-32 h-32 rounded-2xl bg-white shadow-2xl shadow-primary-500/30 overflow-hidden p-2 flex items-center justify-center transform scale-110">
+    <div className="flex items-center justify-center gap-4 mb-6 flex-wrap">
+      {/* EduLink Logo */}
+      <div className="w-24 h-24 rounded-2xl bg-white shadow-2xl shadow-primary-500/30 overflow-hidden p-2 flex items-center justify-center">
+        {!edulinkError ? (
+          <img 
+            src="/edulink-logo.png" 
+            alt="EduLink Logo"
+            className="w-full h-full object-contain"
+            onError={() => setEdulinkError(true)}
+          />
+        ) : (
+          <Building2 className="w-12 h-12 text-primary-600" />
+        )}
+      </div>
+      {/* SMK Bercham Shield Logo */}
+      <div className="w-24 h-24 rounded-2xl bg-white shadow-2xl shadow-primary-500/30 overflow-hidden p-2 flex items-center justify-center">
         {!shieldError ? (
           <img 
             src="/logosekolah.png" 
             alt="SMK Bercham Shield Logo"
-            className="w-full h-full object-contain scale-110"
+            className="w-full h-full object-contain"
             onError={() => setShieldError(true)}
           />
         ) : (
-          <Building2 className="w-16 h-16 text-primary-600" />
+          <Building2 className="w-12 h-12 text-primary-600" />
         )}
       </div>
-      {/* Circular Logo with Book and Star - Made bigger */}
-      <div className="w-32 h-32 rounded-full bg-white shadow-2xl shadow-primary-500/30 overflow-hidden p-2 flex items-center justify-center transform scale-110">
+      {/* Circular Logo with Book and Star */}
+      <div className="w-24 h-24 rounded-full bg-white shadow-2xl shadow-primary-500/30 overflow-hidden p-2 flex items-center justify-center">
         {!circleError ? (
           <img 
             src="/photo_2026-01-27_00-12-15.jpg" 
             alt="SMK Bercham Circular Logo"
-            className="w-full h-full object-contain scale-110"
+            className="w-full h-full object-contain"
             onError={() => setCircleError(true)}
           />
         ) : (
-          <Building2 className="w-16 h-16 text-primary-600" />
+          <Building2 className="w-12 h-12 text-primary-600" />
         )}
       </div>
     </div>
