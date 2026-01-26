@@ -75,7 +75,6 @@ primary_region = "iad"  # Change to your region
   dockerfile = "Dockerfile"
 
 [env]
-  PYTHON_VERSION = "3.12.7"
   PYTHONPATH = "/app"
 
 [http_service]
@@ -94,35 +93,11 @@ primary_region = "iad"  # Change to your region
 
 ---
 
-## Step 5: Create Dockerfile
+## Step 5: Dockerfile Already Created ✅
 
-Create `backend/Dockerfile`:
+The `backend/Dockerfile` is already in your repo! It's ready to use.
 
-```dockerfile
-FROM python:3.12.7-slim
-
-WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements first (for better caching)
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
-COPY . .
-
-# Expose port
-EXPOSE 8000
-
-# Run application
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
+If you need to customize it, you can edit `backend/Dockerfile`.
 
 ---
 
