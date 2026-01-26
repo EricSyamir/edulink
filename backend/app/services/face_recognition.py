@@ -42,42 +42,12 @@ def get_face_analyzer():
         try:
             from insightface.app import FaceAnalysis
             import os
+            import time
             
             logger.info(f"Initializing InsightFace with model: {settings.FACE_MODEL_NAME}")
             
-            # Check if model already exists to avoid re-downloading
-            model_path = f"/root/.insightface/models/{settings.FACE_MODEL_NAME}"
-            model_exists = os.path.exists(model_path) and os.path.isdir(model_path)
-            
-            if model_exists:
-                # Check if all required ONNX files exist and have reasonable size (>1MB)
-                required_files = ['w600k_r50.onnx', 'det_10g.onnx', '1k3d68.onnx', '2d106det.onnx', 'genderage.onnx']
-                all_files_valid = True
-                for f in required_files:
-                    file_path = os.path.join(model_path, f)
-                    if not os.path.exists(file_path):
-                        all_files_valid = False
-                        break
-                    # Check file size (should be > 1MB for ONNX files)
-                    if os.path.getsize(file_path) < 1024 * 1024:
-                        logger.warning(f"Model file {f} seems corrupted (too small), will re-download")
-                        all_files_valid = False
-                        break
-                
-                if all_files_valid:
-                    logger.info(f"Using existing model at {model_path} (all files verified)")
-                else:
-                    logger.warning(f"Model files incomplete or corrupted, will re-download")
-                    # Remove corrupted model directory
-                    import shutil
-                    try:
-                        shutil.rmtree(model_path)
-                        logger.info(f"Removed corrupted model directory: {model_path}")
-                    except Exception as e:
-                        logger.warning(f"Could not remove corrupted model: {e}")
-            
-            # Initialize FaceAnalysis
-            # If model doesn't exist, it will download automatically
+            # Let InsightFace handle download/extraction - don't pre-validate
+            # InsightFace will check if model exists and download if needed
             # The root parameter ensures it uses the correct location
             _face_analyzer = FaceAnalysis(
                 name=settings.FACE_MODEL_NAME,
@@ -86,9 +56,22 @@ def get_face_analyzer():
             )
             
             # Prepare for image size (standard detection size)
+            # This will trigger download if model doesn't exist
             _face_analyzer.prepare(ctx_id=0, det_size=(640, 640))
             
-            logger.info("InsightFace model loaded successfully")
+            # Verify model was loaded successfully by checking if files exist
+            model_path = f"/root/.insightface/models/{settings.FACE_MODEL_NAME}"
+            if os.path.exists(model_path):
+                required_files = ['w600k_r50.onnx', 'det_10g.onnx', '1k3d68.onnx', '2d106det.onnx', 'genderage.onnx']
+                missing_files = [f for f in required_files if not os.path.exists(os.path.join(model_path, f))]
+                if missing_files:
+                    logger.warning(f"Model initialized but some files missing: {missing_files}")
+                else:
+                    logger.info(f"InsightFace model loaded successfully at {model_path}")
+            else:
+                logger.warning(f"Model initialized but directory not found at {model_path}")
+            
+            logger.info("InsightFace ready for face recognition")
             
         except ImportError as e:
             logger.warning(f"InsightFace not available: {e}")
