@@ -43,6 +43,35 @@ def get_current_teacher_info(
     return current_teacher
 
 
+@router.get("/find-by-name")
+def find_teacher_by_name(
+    name: str = Query(..., min_length=3, description="Full name to search for"),
+    db: Session = Depends(get_db)
+):
+    """
+    Find teacher by name (for email retrieval).
+    
+    This is a public endpoint to help teachers find their email address.
+    Returns only the email address if found.
+    """
+    # Search for teacher by name (case-insensitive, partial match)
+    teacher = db.query(Teacher).filter(
+        Teacher.name.ilike(f"%{name.strip()}%")
+    ).first()
+    
+    if not teacher:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No teacher found with that name. Please check your spelling and try again."
+        )
+    
+    # Return only email for security
+    return {
+        "email": teacher.email,
+        "name": teacher.name
+    }
+
+
 @router.put("/me", response_model=TeacherResponse)
 def update_current_teacher_profile(
     teacher_data: TeacherUpdate,

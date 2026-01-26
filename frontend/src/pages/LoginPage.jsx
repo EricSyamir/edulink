@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Building2, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Building2, Mail, Lock, Eye, EyeOff, Loader2, HelpCircle } from 'lucide-react'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -123,15 +123,15 @@ export default function LoginPage() {
               </button>
             </form>
             
-            {/* Demo credentials hint */}
-            <div className="mt-6 p-4 rounded-xl bg-surface-50 border border-surface-200">
-              <p className="text-sm text-surface-600">
-                <span className="font-medium">Demo account:</span>
-                <br />
-                Email: admin@edulink.com
-                <br />
-                Password: admin123
-              </p>
+            {/* Find email link */}
+            <div className="mt-6 text-center">
+              <Link
+                to="/find-email"
+                className="inline-flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium transition-colors"
+              >
+                <HelpCircle className="w-4 h-4" />
+                Forgot your email? Find it here
+              </Link>
             </div>
           </div>
         </div>

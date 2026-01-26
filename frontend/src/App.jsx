@@ -13,6 +13,7 @@ import ClassesPage from './pages/ClassesPage'
 import AdminPage from './pages/AdminPage'
 import AdminTeachersPage from './pages/AdminTeachersPage'
 import ProfilePage from './pages/ProfilePage'
+import FindEmailPage from './pages/FindEmailPage'
 import ConfigError from './components/ConfigError'
 
 /**
@@ -66,6 +67,14 @@ function AppRoutes() {
         element={
           <PublicRoute>
             <LoginPage />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/find-email"
+        element={
+          <PublicRoute>
+            <FindEmailPage />
           </PublicRoute>
         }
       />
