@@ -13,21 +13,9 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download InsightFace buffalo_l model during build with retries
-# Install wget for more reliable downloads
-RUN apt-get update && apt-get install -y wget unzip && rm -rf /var/lib/apt/lists/*
-
-# Download buffalo_l model with retries and verify files
-RUN mkdir -p /root/.insightface/models && \
-    cd /root/.insightface/models && \
-    wget --tries=5 --timeout=120 --retry-connrefused --continue https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip -O buffalo_l.zip && \
-    unzip -q buffalo_l.zip && \
-    rm buffalo_l.zip && \
-    ls -la && \
-    find . -name "*.onnx" -type f && \
-    test -f buffalo_l/w600k_r50.onnx || test -f w600k_r50.onnx && \
-    test -f buffalo_l/det_10g.onnx || test -f det_10g.onnx && \
-    echo "Model downloaded and verified successfully"
+# Pre-download InsightFace buffalo_l model during build using Python
+# This ensures the model is downloaded to the correct location with proper structure
+RUN python -c "import os; os.makedirs('/root/.insightface/models', exist_ok=True); from insightface.app import FaceAnalysis; print('Downloading buffalo_l model...'); fa = FaceAnalysis(name='buffalo_l', root='/root/.insightface', providers=['CPUExecutionProvider']); fa.prepare(ctx_id=0, det_size=(640, 640)); print('Model downloaded and verified successfully')"
 
 # Copy application code
 COPY . .
