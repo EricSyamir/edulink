@@ -3,6 +3,43 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Building2, Mail, Lock, Eye, EyeOff, Loader2, HelpCircle } from 'lucide-react'
 
+// Logo display component with fallback
+function LogoDisplay() {
+  const [shieldError, setShieldError] = useState(false)
+  const [circleError, setCircleError] = useState(false)
+  
+  return (
+    <div className="flex items-center justify-center gap-4 mb-6">
+      {/* SMK Bercham Shield Logo */}
+      <div className="w-24 h-24 rounded-2xl bg-white shadow-2xl shadow-primary-500/30 overflow-hidden p-2 flex items-center justify-center">
+        {!shieldError ? (
+          <img 
+            src="/logo-shield.png" 
+            alt="SMK Bercham Shield Logo"
+            className="w-full h-full object-contain"
+            onError={() => setShieldError(true)}
+          />
+        ) : (
+          <Building2 className="w-12 h-12 text-primary-600" />
+        )}
+      </div>
+      {/* Circular Logo with Book and Star */}
+      <div className="w-24 h-24 rounded-full bg-white shadow-2xl shadow-primary-500/30 overflow-hidden p-2 flex items-center justify-center">
+        {!circleError ? (
+          <img 
+            src="/logo-circle.png" 
+            alt="SMK Bercham Circular Logo"
+            className="w-full h-full object-contain"
+            onError={() => setCircleError(true)}
+          />
+        ) : (
+          <Building2 className="w-12 h-12 text-primary-600" />
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function LoginPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
@@ -42,32 +79,7 @@ export default function LoginPage() {
           {/* Logo and title */}
           <div className="text-center mb-8 animate-fade-in">
             {/* School Logos */}
-            <div className="flex items-center justify-center gap-4 mb-6">
-              {/* SMK Bercham Shield Logo */}
-              <div className="w-24 h-24 rounded-2xl bg-white shadow-2xl shadow-primary-500/30 overflow-hidden p-2 flex items-center justify-center">
-                <img 
-                  src="/logo-shield.png" 
-                  alt="SMK Bercham Shield Logo"
-                  className="w-full h-full object-contain"
-                  onError={(e) => {
-                    e.target.style.display = 'none'
-                    e.target.parentElement.innerHTML = '<Building2 className="w-12 h-12 text-primary-600" />'
-                  }}
-                />
-              </div>
-              {/* Circular Logo with Book and Star */}
-              <div className="w-24 h-24 rounded-full bg-white shadow-2xl shadow-primary-500/30 overflow-hidden p-2 flex items-center justify-center">
-                <img 
-                  src="/logo-circle.png" 
-                  alt="SMK Bercham Circular Logo"
-                  className="w-full h-full object-contain"
-                  onError={(e) => {
-                    e.target.style.display = 'none'
-                    e.target.parentElement.innerHTML = '<Building2 className="w-12 h-12 text-primary-600" />'
-                  }}
-                />
-              </div>
-            </div>
+            <LogoDisplay />
             <h1 className="font-display text-4xl font-bold text-white mb-1">EduLink</h1>
             <p className="text-primary-300 font-semibold text-lg">BErCHAMPION</p>
             <p className="text-primary-200 text-sm mt-2">SMK Bercham - Student Discipline Tracking System</p>

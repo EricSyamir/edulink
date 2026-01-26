@@ -25,26 +25,26 @@ function SchoolLogo({ size = 'md' }) {
     lg: 'w-20 h-20'
   }
   
+  const [imageError, setImageError] = useState(false)
+  
   return (
     <div className={clsx(
       sizeClasses[size],
       'rounded-xl bg-white flex items-center justify-center shadow-lg shadow-primary-500/20 overflow-hidden p-1'
     )}>
-      {/* SMK Bercham Shield Logo */}
-      <img 
-        src="/logo-shield.png" 
-        alt="SMK Bercham Logo"
-        className="w-full h-full object-contain"
-        onError={(e) => {
-          // Fallback to circular logo if shield not found
-          e.target.src = '/logo-circle.png'
-          e.target.onerror = () => {
-            // Final fallback to icon
-            e.target.style.display = 'none'
-            e.target.parentElement.innerHTML = '<svg class="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>'
-          }
-        }}
-      />
+      {!imageError ? (
+        <img 
+          src="/logo-shield.png" 
+          alt="SMK Bercham Logo"
+          className="w-full h-full object-contain"
+          onError={() => setImageError(true)}
+        />
+      ) : (
+        <Building2 className={clsx(
+          size === 'lg' ? 'w-10 h-10' : size === 'md' ? 'w-6 h-6' : 'w-5 h-5',
+          'text-primary-600'
+        )} />
+      )}
     </div>
   )
 }
