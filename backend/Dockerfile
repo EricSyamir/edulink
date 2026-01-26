@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Install wget for more reliable downloads
 RUN apt-get update && apt-get install -y wget unzip && rm -rf /var/lib/apt/lists/*
 
-# Download buffalo_l model with retries and verify extraction
+# Download buffalo_l model with retries and verify files
 RUN mkdir -p /root/.insightface/models && \
     cd /root/.insightface/models && \
     wget --tries=5 --timeout=120 --retry-connrefused --continue https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip -O buffalo_l.zip && \
@@ -26,6 +26,9 @@ RUN mkdir -p /root/.insightface/models && \
     ls -lh buffalo_l/ && \
     test -f buffalo_l/w600k_r50.onnx && \
     test -f buffalo_l/det_10g.onnx && \
+    test -f buffalo_l/1k3d68.onnx && \
+    test -f buffalo_l/2d106det.onnx && \
+    test -f buffalo_l/genderage.onnx && \
     echo "Model downloaded and verified successfully"
 
 # Copy application code
