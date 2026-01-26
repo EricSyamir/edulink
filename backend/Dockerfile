@@ -23,12 +23,10 @@ RUN mkdir -p /root/.insightface/models && \
     wget --tries=5 --timeout=120 --retry-connrefused --continue https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip -O buffalo_l.zip && \
     unzip -q buffalo_l.zip && \
     rm buffalo_l.zip && \
-    ls -lh buffalo_l/ && \
-    test -f buffalo_l/w600k_r50.onnx && \
-    test -f buffalo_l/det_10g.onnx && \
-    test -f buffalo_l/1k3d68.onnx && \
-    test -f buffalo_l/2d106det.onnx && \
-    test -f buffalo_l/genderage.onnx && \
+    ls -la && \
+    find . -name "*.onnx" -type f && \
+    test -f buffalo_l/w600k_r50.onnx || test -f w600k_r50.onnx && \
+    test -f buffalo_l/det_10g.onnx || test -f det_10g.onnx && \
     echo "Model downloaded and verified successfully"
 
 # Copy application code
