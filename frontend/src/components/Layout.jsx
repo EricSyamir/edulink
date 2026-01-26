@@ -20,9 +20,9 @@ import clsx from 'clsx'
 // School logo component
 function SchoolLogo({ size = 'md' }) {
   const sizeClasses = {
-    sm: 'w-10 h-10',
-    md: 'w-11 h-11',
-    lg: 'w-20 h-20'
+    sm: 'w-12 h-12',
+    md: 'w-14 h-14',
+    lg: 'w-24 h-24'
   }
   
   const [imageError, setImageError] = useState(false)
@@ -30,18 +30,18 @@ function SchoolLogo({ size = 'md' }) {
   return (
     <div className={clsx(
       sizeClasses[size],
-      'rounded-xl bg-white flex items-center justify-center shadow-lg shadow-primary-500/20 overflow-hidden p-1'
+      'rounded-xl bg-white flex items-center justify-center shadow-lg shadow-primary-500/20 overflow-hidden p-1 transform scale-110'
     )}>
       {!imageError ? (
         <img 
           src="/logosekolah.png" 
           alt="SMK Bercham Logo"
-          className="w-full h-full object-contain"
+          className="w-full h-full object-contain scale-110"
           onError={() => setImageError(true)}
         />
       ) : (
         <Building2 className={clsx(
-          size === 'lg' ? 'w-10 h-10' : size === 'md' ? 'w-6 h-6' : 'w-5 h-5',
+          size === 'lg' ? 'w-12 h-12' : size === 'md' ? 'w-8 h-8' : 'w-6 h-6',
           'text-primary-600'
         )} />
       )}
