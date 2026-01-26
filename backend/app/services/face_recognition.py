@@ -41,14 +41,27 @@ def get_face_analyzer():
     if _face_analyzer is None:
         try:
             from insightface.app import FaceAnalysis
+            import os
             
             logger.info(f"Initializing InsightFace with model: {settings.FACE_MODEL_NAME}")
             
-            # Initialize FaceAnalysis with buffalo_sc model
-            _face_analyzer = FaceAnalysis(
-                name=settings.FACE_MODEL_NAME,
-                providers=['CPUExecutionProvider']  # Use CPU, add CUDAExecutionProvider for GPU
-            )
+            # Check if model is pre-downloaded in Docker image
+            model_path = f"/root/.insightface/models/{settings.FACE_MODEL_NAME}"
+            if os.path.exists(model_path):
+                logger.info(f"Using pre-downloaded model at {model_path}")
+                # Set root to /root to use pre-downloaded model
+                _face_analyzer = FaceAnalysis(
+                    name=settings.FACE_MODEL_NAME,
+                    root="/root",
+                    providers=['CPUExecutionProvider']  # Use CPU, add CUDAExecutionProvider for GPU
+                )
+            else:
+                logger.info("Model not found at pre-downloaded location, will download if needed")
+                # Initialize FaceAnalysis - will download if needed
+                _face_analyzer = FaceAnalysis(
+                    name=settings.FACE_MODEL_NAME,
+                    providers=['CPUExecutionProvider']  # Use CPU, add CUDAExecutionProvider for GPU
+                )
             
             # Prepare for image size (standard detection size)
             _face_analyzer.prepare(ctx_id=0, det_size=(640, 640))
