@@ -12,6 +12,7 @@ import FormsPage from './pages/FormsPage'
 import ClassesPage from './pages/ClassesPage'
 import AdminPage from './pages/AdminPage'
 import AdminTeachersPage from './pages/AdminTeachersPage'
+import ProfilePage from './pages/ProfilePage'
 import ConfigError from './components/ConfigError'
 
 /**
@@ -87,6 +88,7 @@ function AppRoutes() {
         <Route path="students/:id/edit" element={<EditStudentPage />} />
         <Route path="forms" element={<FormsPage />} />
         <Route path="classes" element={<ClassesPage />} />
+        <Route path="profile" element={<ProfilePage />} />
         <Route path="admin" element={<AdminPage />} />
         <Route path="admin/teachers" element={<AdminTeachersPage />} />
       </Route>

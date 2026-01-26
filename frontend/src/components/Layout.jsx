@@ -11,7 +11,8 @@ import {
   Building2,
   School,
   UserCog,
-  ShieldCheck
+  ShieldCheck,
+  User
 } from 'lucide-react'
 import { useState } from 'react'
 import clsx from 'clsx'
@@ -53,6 +54,7 @@ export default function Layout() {
     { path: '/students', label: 'Students', icon: Users },
     { path: '/forms', label: 'Forms', icon: GraduationCap },
     { path: '/classes', label: 'Classes', icon: School },
+    { path: '/profile', label: 'Profile', icon: User },
   ]
   
   // Admin-only navigation items

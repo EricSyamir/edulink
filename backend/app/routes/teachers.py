@@ -43,6 +43,58 @@ def get_current_teacher_info(
     return current_teacher
 
 
+@router.put("/me", response_model=TeacherResponse)
+def update_current_teacher_profile(
+    teacher_data: TeacherUpdate,
+    db: Session = Depends(get_db),
+    current_teacher: Teacher = Depends(get_current_teacher)
+):
+    """
+    Update current teacher's own profile.
+    
+    Teachers can update:
+    - Name
+    - Password
+    
+    Cannot update:
+    - Email (contact admin)
+    - Teacher ID (contact admin)
+    - Admin status (admin only)
+    """
+    # Only allow updating name and password for own profile
+    if teacher_data.email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot change email. Contact administrator."
+        )
+    
+    if teacher_data.teacher_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot change teacher ID. Contact administrator."
+        )
+    
+    if teacher_data.is_admin is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot change admin status. Contact administrator."
+        )
+    
+    # Update allowed fields
+    if teacher_data.name:
+        current_teacher.name = teacher_data.name
+    
+    if teacher_data.password:
+        current_teacher.password_hash = get_password_hash(teacher_data.password)
+    
+    db.commit()
+    db.refresh(current_teacher)
+    
+    logger.info(f"Teacher {current_teacher.teacher_id} updated their profile")
+    
+    return current_teacher
+
+
 @router.get("/{teacher_id}", response_model=TeacherResponse)
 def get_teacher(
     teacher_id: int,

@@ -268,6 +268,7 @@ export const teacherApi = {
   
   /**
    * Update an existing teacher (Admin only)
+   * Or update own profile if id is 'me'
    */
   update: async (id, data) => {
     const response = await api.put(`/api/teachers/${id}`, data)
