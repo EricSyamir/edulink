@@ -2,6 +2,8 @@
 
 ## 🎯 Simplest Free Hosting Setup
 
+> 💡 **Want more memory for face recognition?** Check out [FLY_DEPLOY.md](./FLY_DEPLOY.md) for Fly.io deployment ($1.94/month for 1GB RAM)
+
 ### Prerequisites
 - GitHub account (already have it!)
 - 10 minutes of your time
