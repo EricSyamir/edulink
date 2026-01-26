@@ -10,20 +10,50 @@ from datetime import datetime
 
 # Light misconduct types
 LIGHT_MISCONDUCT_TYPES = [
-    "Late to Class",
-    "Improper Uniform",
-    "Littering",
-    "Noise Making",
-    "Incomplete Homework"
+    "Defacing school area",
+    "Stepping on grass in prohibited areas",
+    "Not disposing of trash properly",
+    "Late to school/class",
+    "Making noise in class",
+    "Not bringing books/completing homework/assignments",
+    "Not paying attention during teacher's lesson",
+    "Being in canteen or other places during school hours (except recess)",
+    "Not following laboratory/workshop/special room rules",
+    "Late moving to assembly/workshop/laboratory",
+    "Leaving class without permission",
+    "Late to prayer room",
+    "Keeping mustache, beard and sideburns",
+    "Long hair or resembling certain groups",
+    "Wearing jewelry/ornaments/makeup",
+    "Not wearing school uniform neatly/complete",
+    "Dyeing hair",
+    "Playing in class, corridor or prohibited areas",
+    "Using and taking out school equipment without permission",
+    "Storing or using school gaming equipment without permission",
+    "Using school entertainment or electronic devices without permission",
+    "Eating or drinking in class/special rooms",
+    "Wandering during school hours",
+    "Bringing and using mobile phones, MP3 and MP4",
+    "Riding or driving motorized vehicles in school area",
+    "Bringing walkman/discman to class",
+    "Disturbing public order",
+    "Entering special rooms without permission",
+    "Ordering and buying food from outside without permission",
+    "Other offenses interpreted by principal (light category)"
 ]
 
 # Medium misconduct types
 MEDIUM_MISCONDUCT_TYPES = [
-    "Skipping Class",
-    "Vandalism",
-    "Bullying",
-    "Cheating",
-    "Disrespect to Teacher"
+    "Third occurrence of any light offense",
+    "Misusing school electrical equipment/power sources without permission",
+    "Dishonesty, cheating, lying and copying during tests/examinations",
+    "Absenteeism from any official school event",
+    "Not respecting school/state/national anthems/flags/emblems",
+    "Excessive ear piercing/multiple earrings on one ear/excessive jewelry (fashion)",
+    "Vandalizing school property",
+    "Extreme hairstyles like punk/skinhead or colored",
+    "Disturbing teacher during lesson",
+    "Other offenses interpreted by principal (medium category)"
 ]
 
 
@@ -113,3 +143,4 @@ class DashboardAnalytics(BaseModel):
     monthly_medium_misconducts: int
     trends: List[AnalyticsTrend]
     top_offenders: List[dict]
+    misconduct_type_breakdown: dict = Field(default_factory=dict, description="Breakdown by misconduct type")
