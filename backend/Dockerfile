@@ -13,9 +13,17 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download InsightFace buffalo_l model during build
-# This downloads the model to ~/.insightface/models/buffalo_l and includes it in the image
-RUN python -c "import os; os.makedirs('/root/.insightface/models', exist_ok=True); from insightface.app import FaceAnalysis; print('Downloading buffalo_l model...'); fa = FaceAnalysis(name='buffalo_l', providers=['CPUExecutionProvider']); fa.prepare(ctx_id=0, det_size=(640, 640)); print('Model downloaded successfully')"
+# Pre-download InsightFace buffalo_l model during build with retries
+# Install wget for more reliable downloads
+RUN apt-get update && apt-get install -y wget unzip && rm -rf /var/lib/apt/lists/*
+
+# Download buffalo_l model with retries
+RUN mkdir -p /root/.insightface/models && \
+    cd /root/.insightface/models && \
+    wget --tries=5 --timeout=60 --retry-connrefused https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip -O buffalo_l.zip && \
+    unzip -q buffalo_l.zip && \
+    rm buffalo_l.zip && \
+    echo "Model downloaded successfully"
 
 # Copy application code
 COPY . .
