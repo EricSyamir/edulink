@@ -6,7 +6,6 @@ import { Building2, Mail, Lock, Eye, EyeOff, Loader2, HelpCircle } from 'lucide-
 // Logo display component with fallback
 function LogoDisplay() {
   const [shieldError, setShieldError] = useState(false)
-  const [circleError, setCircleError] = useState(false)
   const [edulinkError, setEdulinkError] = useState(false)
   
   return (
@@ -15,7 +14,7 @@ function LogoDisplay() {
       <div className="w-24 h-24 rounded-2xl bg-white shadow-2xl shadow-primary-500/30 overflow-hidden p-2 flex items-center justify-center">
         {!edulinkError ? (
           <img 
-            src="/edulink-logo.png" 
+            src="/photo_2026-01-27_00-12-15.jpg" 
             alt="EduLink Logo"
             className="w-full h-full object-contain"
             onError={() => setEdulinkError(true)}
@@ -32,19 +31,6 @@ function LogoDisplay() {
             alt="SMK Bercham Shield Logo"
             className="w-full h-full object-contain"
             onError={() => setShieldError(true)}
-          />
-        ) : (
-          <Building2 className="w-12 h-12 text-primary-600" />
-        )}
-      </div>
-      {/* Circular Logo with Book and Star */}
-      <div className="w-24 h-24 rounded-full bg-white shadow-2xl shadow-primary-500/30 overflow-hidden p-2 flex items-center justify-center">
-        {!circleError ? (
-          <img 
-            src="/photo_2026-01-27_00-12-15.jpg" 
-            alt="SMK Bercham Circular Logo"
-            className="w-full h-full object-contain"
-            onError={() => setCircleError(true)}
           />
         ) : (
           <Building2 className="w-12 h-12 text-primary-600" />
