@@ -50,18 +50,35 @@ def get_face_analyzer():
             model_exists = os.path.exists(model_path) and os.path.isdir(model_path)
             
             if model_exists:
-                # Check if all required ONNX files exist
+                # Check if all required ONNX files exist and have reasonable size (>1MB)
                 required_files = ['w600k_r50.onnx', 'det_10g.onnx', '1k3d68.onnx', '2d106det.onnx', 'genderage.onnx']
-                all_files_exist = all(os.path.exists(os.path.join(model_path, f)) for f in required_files)
+                all_files_valid = True
+                for f in required_files:
+                    file_path = os.path.join(model_path, f)
+                    if not os.path.exists(file_path):
+                        all_files_valid = False
+                        break
+                    # Check file size (should be > 1MB for ONNX files)
+                    if os.path.getsize(file_path) < 1024 * 1024:
+                        logger.warning(f"Model file {f} seems corrupted (too small), will re-download")
+                        all_files_valid = False
+                        break
                 
-                if all_files_exist:
-                    logger.info(f"Using existing model at {model_path}")
+                if all_files_valid:
+                    logger.info(f"Using existing model at {model_path} (all files verified)")
                 else:
-                    logger.warning(f"Model directory exists but files incomplete, will re-download")
-                    model_exists = False
+                    logger.warning(f"Model files incomplete or corrupted, will re-download")
+                    # Remove corrupted model directory
+                    import shutil
+                    try:
+                        shutil.rmtree(model_path)
+                        logger.info(f"Removed corrupted model directory: {model_path}")
+                    except Exception as e:
+                        logger.warning(f"Could not remove corrupted model: {e}")
             
             # Initialize FaceAnalysis
             # If model doesn't exist, it will download automatically
+            # The root parameter ensures it uses the correct location
             _face_analyzer = FaceAnalysis(
                 name=settings.FACE_MODEL_NAME,
                 root="/root/.insightface",
