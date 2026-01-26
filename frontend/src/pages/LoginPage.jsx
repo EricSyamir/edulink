@@ -14,7 +14,7 @@ function LogoDisplay() {
       <div className="w-24 h-24 rounded-2xl bg-white shadow-2xl shadow-primary-500/30 overflow-hidden p-2 flex items-center justify-center">
         {!shieldError ? (
           <img 
-            src="/logo-shield.png" 
+            src="/logosekolah.png" 
             alt="SMK Bercham Shield Logo"
             className="w-full h-full object-contain"
             onError={() => setShieldError(true)}
@@ -27,7 +27,7 @@ function LogoDisplay() {
       <div className="w-24 h-24 rounded-full bg-white shadow-2xl shadow-primary-500/30 overflow-hidden p-2 flex items-center justify-center">
         {!circleError ? (
           <img 
-            src="/logo-circle.png" 
+            src="/photo_2026-01-27_00-12-15.jpg" 
             alt="SMK Bercham Circular Logo"
             className="w-full h-full object-contain"
             onError={() => setCircleError(true)}

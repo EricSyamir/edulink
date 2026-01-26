@@ -34,7 +34,7 @@ function SchoolLogo({ size = 'md' }) {
     )}>
       {!imageError ? (
         <img 
-          src="/logo-shield.png" 
+          src="/logosekolah.png" 
           alt="SMK Bercham Logo"
           className="w-full h-full object-contain"
           onError={() => setImageError(true)}
