@@ -20,9 +20,9 @@ import clsx from 'clsx'
 // School logo component
 function SchoolLogo({ size = 'md' }) {
   const sizeClasses = {
-    sm: 'w-12 h-12',
-    md: 'w-14 h-14',
-    lg: 'w-24 h-24'
+    sm: 'w-10 h-10',
+    md: 'w-11 h-11',
+    lg: 'w-20 h-20'
   }
   
   const [imageError, setImageError] = useState(false)
@@ -30,18 +30,18 @@ function SchoolLogo({ size = 'md' }) {
   return (
     <div className={clsx(
       sizeClasses[size],
-      'rounded-xl bg-white flex items-center justify-center shadow-lg shadow-primary-500/20 overflow-hidden p-1 transform scale-110'
+      'rounded-xl bg-white flex items-center justify-center shadow-lg shadow-primary-500/20 overflow-hidden p-1'
     )}>
       {!imageError ? (
         <img 
           src="/logosekolah.png" 
           alt="SMK Bercham Logo"
-          className="w-full h-full object-contain scale-110"
+          className="w-full h-full object-contain"
           onError={() => setImageError(true)}
         />
       ) : (
         <Building2 className={clsx(
-          size === 'lg' ? 'w-12 h-12' : size === 'md' ? 'w-8 h-8' : 'w-6 h-6',
+          size === 'lg' ? 'w-10 h-10' : size === 'md' ? 'w-6 h-6' : 'w-5 h-5',
           'text-primary-600'
         )} />
       )}
@@ -83,7 +83,20 @@ export default function Layout() {
       {/* Mobile header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-surface-200">
         <div className="flex items-center justify-between px-4 h-16">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* EduLink Logo */}
+            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-lg shadow-primary-500/20 overflow-hidden p-1">
+              <img 
+                src="/photo_2026-01-27_00-12-15.jpg" 
+                alt="EduLink Logo"
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  e.target.style.display = 'none'
+                  e.target.parentElement.innerHTML = '<Building2 className="w-5 h-5 text-primary-600" />'
+                }}
+              />
+            </div>
+            {/* SMK Bercham Logo */}
             <SchoolLogo size="sm" />
             <div>
               <span className="font-display font-bold text-lg text-surface-900">EduLink</span>
@@ -169,7 +182,22 @@ export default function Layout() {
       <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-surface-200">
         {/* Logo */}
         <div className="flex items-center gap-3 px-6 h-20 border-b border-surface-200">
-          <SchoolLogo size="md" />
+          <div className="flex items-center gap-2">
+            {/* EduLink Logo */}
+            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-lg shadow-primary-500/20 overflow-hidden p-1">
+              <img 
+                src="/photo_2026-01-27_00-12-15.jpg" 
+                alt="EduLink Logo"
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  e.target.style.display = 'none'
+                  e.target.parentElement.innerHTML = '<Building2 className="w-6 h-6 text-primary-600" />'
+                }}
+              />
+            </div>
+            {/* SMK Bercham Logo */}
+            <SchoolLogo size="sm" />
+          </div>
           <div>
             <h1 className="font-display font-bold text-xl text-surface-900">EduLink</h1>
             <p className="text-xs text-primary-600 font-medium">BErCHAMPION</p>
