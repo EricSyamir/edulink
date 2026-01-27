@@ -539,28 +539,60 @@ def import_students_csv(
                     if len(row) >= 5:
                         # Check if first column is numeric (Bil. column)
                         try:
-                            int(row[0].strip())
+                            int(str(row[0]).strip())
                             # First column is Bil., skip it
-                            student_id = row[1].strip() if len(row) > 1 else None
-                            student_name = row[2].strip() if len(row) > 2 else None
-                            student_form = row[3].strip() if len(row) > 3 else None
-                            student_class = row[4].strip() if len(row) > 4 else None
-                        except ValueError:
+                            student_id = str(row[1]).strip() if len(row) > 1 and row[1] else None
+                            student_name = str(row[2]).strip() if len(row) > 2 and row[2] else None
+                            student_form = str(row[3]).strip() if len(row) > 3 and row[3] else None
+                            student_class = str(row[4]).strip() if len(row) > 4 and row[4] else None
+                        except (ValueError, IndexError):
                             # First column is not numeric, treat as StudentID
-                            student_id = row[0].strip()
-                            student_name = row[1].strip() if len(row) > 1 else None
-                            student_form = row[2].strip() if len(row) > 2 else None
-                            student_class = row[3].strip() if len(row) > 3 else None
+                            student_id = str(row[0]).strip() if row[0] else None
+                            student_name = str(row[1]).strip() if len(row) > 1 and row[1] else None
+                            student_form = str(row[2]).strip() if len(row) > 2 and row[2] else None
+                            student_class = str(row[3]).strip() if len(row) > 3 and row[3] else None
                     else:
                         # 4 columns: StudentID, StudentName, StudentForm, StudentClass
-                        student_id = row[0].strip()
-                        student_name = row[1].strip() if len(row) > 1 else None
-                        student_form = row[2].strip() if len(row) > 2 else None
-                        student_class = row[3].strip() if len(row) > 3 else None
+                        student_id = str(row[0]).strip() if row[0] else None
+                        student_name = str(row[1]).strip() if len(row) > 1 and row[1] else None
+                        student_form = str(row[2]).strip() if len(row) > 2 and row[2] else None
+                        student_class = str(row[3]).strip() if len(row) > 3 and row[3] else None
                 
-                # Validate required fields
-                if not student_id or not student_name or not student_form or not student_class:
-                    errors.append(f"Row {row_num}: Missing required fields")
+                # Strip and validate required fields (check for empty strings after stripping)
+                student_id = student_id.strip() if student_id else ""
+                student_name = student_name.strip() if student_name else ""
+                student_form = student_form.strip() if student_form else ""
+                student_class = student_class.strip() if student_class else ""
+                
+                # Validate required fields are not empty
+                if not student_id:
+                    errors.append(f"Row {row_num}: StudentID is required but was empty")
+                    skipped_count += 1
+                    continue
+                if not student_name:
+                    errors.append(f"Row {row_num}: StudentName is required but was empty")
+                    skipped_count += 1
+                    continue
+                if not student_form:
+                    errors.append(f"Row {row_num}: StudentForm is required but was empty")
+                    skipped_count += 1
+                    continue
+                if not student_class:
+                    errors.append(f"Row {row_num}: StudentClass is required but was empty")
+                    skipped_count += 1
+                    continue
+                
+                # Validate field lengths (database constraints)
+                if len(student_id) > 50:
+                    errors.append(f"Row {row_num}: StudentID too long (max 50 characters, got {len(student_id)})")
+                    skipped_count += 1
+                    continue
+                if len(student_name) > 255:
+                    errors.append(f"Row {row_num}: StudentName too long (max 255 characters, got {len(student_name)})")
+                    skipped_count += 1
+                    continue
+                if len(student_class) > 100:
+                    errors.append(f"Row {row_num}: StudentClass too long (max 100 characters, got {len(student_class)})")
                     skipped_count += 1
                     continue
                 
@@ -568,11 +600,11 @@ def import_students_csv(
                 try:
                     form = int(student_form)
                     if form < 1 or form > 5:
-                        errors.append(f"Row {row_num}: Form must be between 1 and 5")
+                        errors.append(f"Row {row_num}: Form must be between 1 and 5, got {form}")
                         skipped_count += 1
                         continue
                 except ValueError:
-                    errors.append(f"Row {row_num}: Invalid form value '{student_form}'")
+                    errors.append(f"Row {row_num}: Invalid form value '{student_form}' (must be a number between 1-5)")
                     skipped_count += 1
                     continue
                 
@@ -585,16 +617,24 @@ def import_students_csv(
                     existing.class_name = student_class
                     existing.form = form
                     updated_count += 1
+                    logger.debug(f"Row {row_num}: Updated student {student_id} - {student_name}")
                 else:
                     # Create new student
-                    new_student = Student(
-                        student_id=student_id,
-                        name=student_name,
-                        class_name=student_class,
-                        form=form
-                    )
-                    db.add(new_student)
-                    created_count += 1
+                    try:
+                        new_student = Student(
+                            student_id=student_id,
+                            name=student_name,
+                            class_name=student_class,
+                            form=form
+                        )
+                        db.add(new_student)
+                        created_count += 1
+                        logger.debug(f"Row {row_num}: Created student {student_id} - {student_name}")
+                    except Exception as db_error:
+                        errors.append(f"Row {row_num}: Database error creating student {student_id}: {str(db_error)}")
+                        skipped_count += 1
+                        logger.error(f"Database error on row {row_num}: {db_error}", exc_info=True)
+                        continue
                 
             except Exception as e:
                 errors.append(f"Row {row_num}: {str(e)}")
