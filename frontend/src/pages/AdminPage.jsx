@@ -319,6 +319,8 @@ export default function AdminPage() {
             <h3 className="text-xl font-semibold text-surface-900">Import Students from CSV</h3>
             <p className="text-surface-600 mt-2">
               Upload a CSV file with columns: StudentID, StudentName, StudentForm, StudentClass
+              <br />
+              <span className="text-sm text-surface-500">Headers are optional - CSV can have headers or just data rows</span>
             </p>
             
             <div className="mt-6 space-y-4">
@@ -356,8 +358,9 @@ export default function AdminPage() {
                 <p className="font-medium text-blue-800 text-sm mb-2">CSV Format:</p>
                 <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
                   <li>Required columns: StudentID, StudentName, StudentForm, StudentClass</li>
-                  <li>Optional column: Bil. (serial number)</li>
-                  <li>First row should contain column headers</li>
+                  <li>Optional column: Bil. (serial number) - can be first column</li>
+                  <li>Headers are optional - CSV can have headers or just data rows</li>
+                  <li>Format: Bil.,StudentID,StudentName,StudentForm,StudentClass</li>
                   <li>Form must be a number between 1 and 5</li>
                 </ul>
               </div>

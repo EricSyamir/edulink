@@ -407,12 +407,16 @@ def import_students_csv(
     """
     Import students from CSV file (Admin only).
     
-    CSV format should have columns:
-    - Bil. (serial number, optional)
+    CSV format (with or without headers):
+    - Bil. (serial number, optional - first column if present)
     - StudentID
     - StudentName
     - StudentForm
     - StudentClass
+    
+    If headers are present, they should match the column names above (case-insensitive).
+    If no headers, the format should be: Bil.,StudentID,StudentName,StudentForm,StudentClass
+    or: StudentID,StudentName,StudentForm,StudentClass (without Bil.)
     
     Returns summary of import results.
     """
@@ -435,21 +439,42 @@ def import_students_csv(
             # Try with different encoding
             content_str = contents.decode('utf-8-sig')  # Handle BOM
         
-        # Parse CSV
-        csv_reader = csv.DictReader(io.StringIO(content_str))
-        
-        # Expected columns (case-insensitive)
-        required_columns = ['studentid', 'studentname', 'studentform', 'studentclass']
-        
-        # Check if all required columns exist
-        csv_columns = [col.lower().strip() for col in csv_reader.fieldnames]
-        missing_columns = [col for col in required_columns if col not in csv_columns]
-        
-        if missing_columns:
+        # Parse CSV - try to detect if headers exist
+        csv_lines = content_str.strip().split('\n')
+        if not csv_lines:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Missing required columns: {', '.join(missing_columns)}. Found columns: {', '.join(csv_reader.fieldnames)}"
+                detail="CSV file is empty"
             )
+        
+        # Check if first row looks like headers (contains expected column names)
+        first_row = csv_lines[0].strip()
+        csv_reader = csv.reader(io.StringIO(content_str))
+        first_row_values = next(csv_reader)
+        
+        # Expected column names (case-insensitive)
+        expected_headers = ['bil', 'studentid', 'studentname', 'studentform', 'studentclass']
+        first_row_lower = [col.lower().strip().replace('.', '').replace(' ', '') for col in first_row_values]
+        
+        # Check if first row contains expected headers
+        has_headers = any(
+            any(expected in col for expected in expected_headers) 
+            for col in first_row_lower
+        )
+        
+        # If headers detected, use DictReader; otherwise use positional mapping
+        if has_headers:
+            # Reset and use DictReader
+            csv_reader = csv.DictReader(io.StringIO(content_str))
+            use_dict_mode = True
+            start_row = 2  # Skip header row
+        else:
+            # No headers, use positional mapping
+            # Format: Bil., StudentID, StudentName, StudentForm, StudentClass
+            # Or: StudentID, StudentName, StudentForm, StudentClass (no Bil.)
+            csv_reader = csv.reader(io.StringIO(content_str))
+            use_dict_mode = False
+            start_row = 1  # No header to skip
         
         # Process rows
         created_count = 0
@@ -457,24 +482,58 @@ def import_students_csv(
         skipped_count = 0
         errors = []
         
-        for row_num, row in enumerate(csv_reader, start=2):  # Start at 2 (row 1 is header)
+        for row_num, row in enumerate(csv_reader, start=start_row):
             try:
-                # Get values (case-insensitive column matching)
-                student_id = None
-                student_name = None
-                student_form = None
-                student_class = None
-                
-                for key, value in row.items():
-                    key_lower = key.lower().strip()
-                    if key_lower == 'studentid':
-                        student_id = value.strip() if value else None
-                    elif key_lower == 'studentname':
-                        student_name = value.strip() if value else None
-                    elif key_lower == 'studentform':
-                        student_form = value.strip() if value else None
-                    elif key_lower == 'studentclass':
-                        student_class = value.strip() if value else None
+                # Get values based on mode
+                if use_dict_mode:
+                    # Dictionary mode (with headers)
+                    student_id = None
+                    student_name = None
+                    student_form = None
+                    student_class = None
+                    
+                    for key, value in row.items():
+                        key_lower = key.lower().strip().replace('.', '').replace(' ', '')
+                        if 'studentid' in key_lower or key_lower == 'studentid':
+                            student_id = value.strip() if value else None
+                        elif 'studentname' in key_lower or key_lower == 'studentname':
+                            student_name = value.strip() if value else None
+                        elif 'studentform' in key_lower or key_lower == 'studentform':
+                            student_form = value.strip() if value else None
+                        elif 'studentclass' in key_lower or key_lower == 'studentclass':
+                            student_class = value.strip() if value else None
+                else:
+                    # Positional mode (no headers)
+                    # Expected format: [Bil.], StudentID, StudentName, StudentForm, StudentClass
+                    # Or: StudentID, StudentName, StudentForm, StudentClass
+                    if len(row) < 4:
+                        errors.append(f"Row {row_num}: Insufficient columns (expected at least 4, got {len(row)})")
+                        skipped_count += 1
+                        continue
+                    
+                    # Try to detect if first column is Bil. (usually a number)
+                    # If first column looks like a number and we have 5 columns, skip it
+                    if len(row) >= 5:
+                        # Check if first column is numeric (Bil. column)
+                        try:
+                            int(row[0].strip())
+                            # First column is Bil., skip it
+                            student_id = row[1].strip() if len(row) > 1 else None
+                            student_name = row[2].strip() if len(row) > 2 else None
+                            student_form = row[3].strip() if len(row) > 3 else None
+                            student_class = row[4].strip() if len(row) > 4 else None
+                        except ValueError:
+                            # First column is not numeric, treat as StudentID
+                            student_id = row[0].strip()
+                            student_name = row[1].strip() if len(row) > 1 else None
+                            student_form = row[2].strip() if len(row) > 2 else None
+                            student_class = row[3].strip() if len(row) > 3 else None
+                    else:
+                        # 4 columns: StudentID, StudentName, StudentForm, StudentClass
+                        student_id = row[0].strip()
+                        student_name = row[1].strip() if len(row) > 1 else None
+                        student_form = row[2].strip() if len(row) > 2 else None
+                        student_class = row[3].strip() if len(row) > 3 else None
                 
                 # Validate required fields
                 if not student_id or not student_name or not student_form or not student_class:
