@@ -27,4 +27,6 @@ ENV PYTHONPATH=/app
 EXPOSE 8000
 
 # Run application
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Use PORT environment variable if set (Fly.io sets this automatically from internal_port)
+# Default to 8000 if PORT is not set
+CMD sh -c "uvicorn app.main:app --host 0.0.0.0 --port \${PORT:-8000}"
