@@ -11,7 +11,9 @@ import {
   Loader2,
   AlertTriangle,
   CheckCircle2,
-  UserCog
+  UserCog,
+  Upload,
+  FileSpreadsheet
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
@@ -22,6 +24,9 @@ export default function AdminPage() {
   const [showPromoteModal, setShowPromoteModal] = useState(false)
   const [promoteFromForm, setPromoteFromForm] = useState('')
   const [promoteToForm, setPromoteToForm] = useState('')
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [importFile, setImportFile] = useState(null)
+  const [importResult, setImportResult] = useState(null)
   
   // Check if user is admin
   if (!teacher?.is_admin) {
@@ -60,6 +65,21 @@ export default function AdminPage() {
     },
   })
   
+  // Import CSV mutation
+  const importMutation = useMutation({
+    mutationFn: (file) => studentApi.importCSV(file),
+    onSuccess: (data) => {
+      setImportResult(data)
+      queryClient.invalidateQueries(['students'])
+      queryClient.invalidateQueries(['form-stats'])
+      toast.success(`Import completed: ${data.created} created, ${data.updated} updated`)
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to import CSV')
+      setImportResult(null)
+    },
+  })
+  
   const handlePromote = () => {
     if (!promoteFromForm || !promoteToForm) return
     
@@ -77,6 +97,32 @@ export default function AdminPage() {
     }
     
     promoteMutation.mutate({ fromForm: from, toForm: to })
+  }
+  
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      if (!file.name.endsWith('.csv')) {
+        toast.error('Please select a CSV file')
+        return
+      }
+      setImportFile(file)
+      setImportResult(null)
+    }
+  }
+  
+  const handleImport = () => {
+    if (!importFile) {
+      toast.error('Please select a CSV file')
+      return
+    }
+    importMutation.mutate(importFile)
+  }
+  
+  const handleCloseImportModal = () => {
+    setShowImportModal(false)
+    setImportFile(null)
+    setImportResult(null)
   }
   
   return (
@@ -121,6 +167,21 @@ export default function AdminPage() {
           </div>
           <h3 className="text-lg font-semibold text-surface-900 mt-4">Promote Students</h3>
           <p className="text-surface-500 text-sm mt-1">Move all students from one form to another</p>
+        </button>
+        
+        {/* Import Students */}
+        <button 
+          onClick={() => setShowImportModal(true)}
+          className="card p-6 hover:shadow-md hover:border-surface-300 transition-all group text-left"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+              <Upload className="w-6 h-6 text-blue-600" />
+            </div>
+            <ArrowUpRight className="w-5 h-5 text-surface-400 group-hover:text-blue-500 transition-colors" />
+          </div>
+          <h3 className="text-lg font-semibold text-surface-900 mt-4">Import Students</h3>
+          <p className="text-surface-500 text-sm mt-1">Import students from CSV file</p>
         </button>
       </div>
       
@@ -243,6 +304,133 @@ export default function AdminPage() {
                   <>
                     <CheckCircle2 className="w-5 h-5" />
                     Promote
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="card p-6 max-w-md w-full animate-scale-in">
+            <h3 className="text-xl font-semibold text-surface-900">Import Students from CSV</h3>
+            <p className="text-surface-600 mt-2">
+              Upload a CSV file with columns: StudentID, StudentName, StudentForm, StudentClass
+            </p>
+            
+            <div className="mt-6 space-y-4">
+              {/* File Input */}
+              <div>
+                <label className="block text-sm font-medium text-surface-700 mb-2">
+                  Select CSV File
+                </label>
+                <div className="flex items-center gap-3">
+                  <label className="flex-1 cursor-pointer">
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      disabled={importMutation.isPending}
+                    />
+                    <div className="input flex items-center gap-3 cursor-pointer hover:border-primary-400">
+                      <FileSpreadsheet className="w-5 h-5 text-surface-400" />
+                      <span className="text-surface-600 flex-1">
+                        {importFile ? importFile.name : 'Choose CSV file...'}
+                      </span>
+                    </div>
+                  </label>
+                </div>
+                {importFile && (
+                  <p className="text-sm text-surface-500 mt-2">
+                    File selected: {importFile.name} ({(importFile.size / 1024).toFixed(2)} KB)
+                  </p>
+                )}
+              </div>
+              
+              {/* CSV Format Info */}
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                <p className="font-medium text-blue-800 text-sm mb-2">CSV Format:</p>
+                <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
+                  <li>Required columns: StudentID, StudentName, StudentForm, StudentClass</li>
+                  <li>Optional column: Bil. (serial number)</li>
+                  <li>First row should contain column headers</li>
+                  <li>Form must be a number between 1 and 5</li>
+                </ul>
+              </div>
+              
+              {/* Import Result */}
+              {importResult && (
+                <div className={clsx(
+                  "p-4 rounded-xl border",
+                  importResult.total_errors > 0 
+                    ? "bg-amber-50 border-amber-200" 
+                    : "bg-emerald-50 border-emerald-200"
+                )}>
+                  <div className="flex items-start gap-3">
+                    {importResult.total_errors > 0 ? (
+                      <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    ) : (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    )}
+                    <div className="flex-1">
+                      <p className={clsx(
+                        "font-medium",
+                        importResult.total_errors > 0 ? "text-amber-800" : "text-emerald-800"
+                      )}>
+                        Import Summary
+                      </p>
+                      <div className="text-sm mt-2 space-y-1">
+                        <p className={clsx(importResult.total_errors > 0 ? "text-amber-700" : "text-emerald-700")}>
+                          Created: {importResult.created} | Updated: {importResult.updated} | Skipped: {importResult.skipped}
+                        </p>
+                        {importResult.errors && importResult.errors.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-amber-700 font-medium">Errors:</p>
+                            <ul className="list-disc list-inside text-xs text-amber-600 mt-1">
+                              {importResult.errors.map((error, idx) => (
+                                <li key={idx}>{error}</li>
+                              ))}
+                            </ul>
+                            {importResult.total_errors > importResult.errors.length && (
+                              <p className="text-xs text-amber-600 mt-1">
+                                ... and {importResult.total_errors - importResult.errors.length} more errors
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleCloseImportModal}
+                className="btn-secondary flex-1"
+                disabled={importMutation.isPending}
+              >
+                {importResult ? 'Close' : 'Cancel'}
+              </button>
+              <button
+                onClick={handleImport}
+                disabled={!importFile || importMutation.isPending}
+                className="btn-primary flex-1"
+              >
+                {importMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Importing...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-5 h-5" />
+                    Import
                   </>
                 )}
               </button>

@@ -4,10 +4,12 @@ CRUD operations for students and face identification.
 """
 
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from loguru import logger
+import csv
+import io
 
 from app.database import get_db
 from app.models import Student, Teacher
@@ -393,4 +395,150 @@ def promote_students(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
-    )
+        )
+
+
+@router.post("/import", status_code=status.HTTP_200_OK)
+def import_students_csv(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    teacher: Teacher = Depends(require_admin)
+):
+    """
+    Import students from CSV file (Admin only).
+    
+    CSV format should have columns:
+    - Bil. (serial number, optional)
+    - StudentID
+    - StudentName
+    - StudentForm
+    - StudentClass
+    
+    Returns summary of import results.
+    """
+    # Check file type
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only CSV files are accepted"
+        )
+    
+    try:
+        # Read CSV content
+        contents = file.file.read()
+        file.file.seek(0)  # Reset file pointer
+        
+        # Decode content
+        try:
+            content_str = contents.decode('utf-8')
+        except UnicodeDecodeError:
+            # Try with different encoding
+            content_str = contents.decode('utf-8-sig')  # Handle BOM
+        
+        # Parse CSV
+        csv_reader = csv.DictReader(io.StringIO(content_str))
+        
+        # Expected columns (case-insensitive)
+        required_columns = ['studentid', 'studentname', 'studentform', 'studentclass']
+        
+        # Check if all required columns exist
+        csv_columns = [col.lower().strip() for col in csv_reader.fieldnames]
+        missing_columns = [col for col in required_columns if col not in csv_columns]
+        
+        if missing_columns:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Missing required columns: {', '.join(missing_columns)}. Found columns: {', '.join(csv_reader.fieldnames)}"
+            )
+        
+        # Process rows
+        created_count = 0
+        updated_count = 0
+        skipped_count = 0
+        errors = []
+        
+        for row_num, row in enumerate(csv_reader, start=2):  # Start at 2 (row 1 is header)
+            try:
+                # Get values (case-insensitive column matching)
+                student_id = None
+                student_name = None
+                student_form = None
+                student_class = None
+                
+                for key, value in row.items():
+                    key_lower = key.lower().strip()
+                    if key_lower == 'studentid':
+                        student_id = value.strip() if value else None
+                    elif key_lower == 'studentname':
+                        student_name = value.strip() if value else None
+                    elif key_lower == 'studentform':
+                        student_form = value.strip() if value else None
+                    elif key_lower == 'studentclass':
+                        student_class = value.strip() if value else None
+                
+                # Validate required fields
+                if not student_id or not student_name or not student_form or not student_class:
+                    errors.append(f"Row {row_num}: Missing required fields")
+                    skipped_count += 1
+                    continue
+                
+                # Convert form to integer
+                try:
+                    form = int(student_form)
+                    if form < 1 or form > 5:
+                        errors.append(f"Row {row_num}: Form must be between 1 and 5")
+                        skipped_count += 1
+                        continue
+                except ValueError:
+                    errors.append(f"Row {row_num}: Invalid form value '{student_form}'")
+                    skipped_count += 1
+                    continue
+                
+                # Check if student already exists
+                existing = db.query(Student).filter(Student.student_id == student_id).first()
+                
+                if existing:
+                    # Update existing student
+                    existing.name = student_name
+                    existing.class_name = student_class
+                    existing.form = form
+                    updated_count += 1
+                else:
+                    # Create new student
+                    new_student = Student(
+                        student_id=student_id,
+                        name=student_name,
+                        class_name=student_class,
+                        form=form
+                    )
+                    db.add(new_student)
+                    created_count += 1
+                
+            except Exception as e:
+                errors.append(f"Row {row_num}: {str(e)}")
+                skipped_count += 1
+                logger.error(f"Error processing CSV row {row_num}: {e}")
+        
+        # Commit all changes
+        db.commit()
+        
+        logger.info(f"CSV import completed: {created_count} created, {updated_count} updated, {skipped_count} skipped")
+        
+        return {
+            "message": "CSV import completed",
+            "created": created_count,
+            "updated": updated_count,
+            "skipped": skipped_count,
+            "errors": errors[:10] if errors else [],  # Return first 10 errors
+            "total_errors": len(errors)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"CSV import failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to import CSV: {str(e)}"
+        )

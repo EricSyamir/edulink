@@ -141,6 +141,20 @@ export const studentApi = {
     const response = await api.post('/api/students/promote', { from_form: fromForm, to_form: toForm })
     return response.data
   },
+  
+  /**
+   * Import students from CSV file (Admin only)
+   */
+  importCSV: async (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await api.post('/api/students/import', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  },
 }
 
 // ============================================
