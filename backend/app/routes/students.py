@@ -444,15 +444,19 @@ def import_students_csv(
             )
         file.file.seek(0)  # Reset file pointer
         
-        # Decode content
+        # Decode content - try utf-8-sig first to handle BOM, then fallback to utf-8
         try:
-            content_str = contents.decode('utf-8')
-            logger.info("Successfully decoded CSV as UTF-8")
+            content_str = contents.decode('utf-8-sig')  # utf-8-sig automatically strips BOM
+            logger.info("Successfully decoded CSV as UTF-8-sig (BOM handled)")
         except UnicodeDecodeError as e:
-            logger.warning(f"UTF-8 decode failed, trying UTF-8-sig: {e}")
+            logger.warning(f"UTF-8-sig decode failed, trying UTF-8: {e}")
             try:
-                content_str = contents.decode('utf-8-sig')  # Handle BOM
-                logger.info("Successfully decoded CSV as UTF-8-sig")
+                content_str = contents.decode('utf-8')
+                # Manually strip BOM if present
+                if content_str.startswith('\ufeff'):
+                    content_str = content_str[1:]
+                    logger.info("Stripped BOM character from UTF-8 content")
+                logger.info("Successfully decoded CSV as UTF-8")
             except Exception as e2:
                 logger.error(f"Failed to decode CSV file: {e2}")
                 raise HTTPException(
