@@ -422,56 +422,71 @@ def import_students_csv(
     """
     # Check file type
     if not file.filename or not file.filename.endswith('.csv'):
-        logger.warning(f"Invalid file type: {file.filename}")
+        error_msg = f"Invalid file type: {file.filename if file.filename else 'No filename provided'}"
+        logger.error(error_msg)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only CSV files are accepted"
+            detail=error_msg
         )
     
-    logger.info(f"Processing CSV import from file: {file.filename}")
+    logger.info(f"Processing CSV import from file: {file.filename}, content_type: {file.content_type}")
     
     try:
         # Read CSV content
         contents = file.file.read()
+        logger.info(f"Read {len(contents)} bytes from file")
         if not contents:
-            logger.warning("CSV file is empty")
+            error_msg = "CSV file is empty"
+            logger.error(error_msg)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="CSV file is empty"
+                detail=error_msg
             )
         file.file.seek(0)  # Reset file pointer
         
         # Decode content
         try:
             content_str = contents.decode('utf-8')
-        except UnicodeDecodeError:
-            # Try with different encoding
-            content_str = contents.decode('utf-8-sig')  # Handle BOM
+            logger.info("Successfully decoded CSV as UTF-8")
+        except UnicodeDecodeError as e:
+            logger.warning(f"UTF-8 decode failed, trying UTF-8-sig: {e}")
+            try:
+                content_str = contents.decode('utf-8-sig')  # Handle BOM
+                logger.info("Successfully decoded CSV as UTF-8-sig")
+            except Exception as e2:
+                logger.error(f"Failed to decode CSV file: {e2}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Failed to decode CSV file. Please ensure it's a valid UTF-8 CSV file. Error: {str(e2)}"
+                )
         
         # Parse CSV - try to detect if headers exist
-        csv_lines = content_str.strip().split('\n')
+        csv_lines = [line for line in content_str.strip().split('\n') if line.strip()]  # Filter empty lines
         if not csv_lines:
-            logger.warning("CSV file has no lines after parsing")
+            error_msg = "CSV file has no lines after parsing"
+            logger.error(error_msg)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="CSV file is empty"
+                detail=error_msg
             )
         
-        logger.info(f"CSV file has {len(csv_lines)} lines")
+        logger.info(f"CSV file has {len(csv_lines)} non-empty lines")
         
         # Check if first row looks like headers (contains expected column names)
         first_row = csv_lines[0].strip()
+        logger.info(f"First row (raw): {repr(first_row)}")
+        
         csv_reader = csv.reader(io.StringIO(content_str))
         try:
             first_row_values = next(csv_reader)
+            logger.info(f"First row values (parsed): {first_row_values}")
         except StopIteration:
-            logger.warning("CSV file has no rows")
+            error_msg = "CSV file has no rows"
+            logger.error(error_msg)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="CSV file has no data rows"
+                detail=error_msg
             )
-        
-        logger.info(f"First row values: {first_row_values}")
         
         # Expected column names (case-insensitive)
         expected_headers = ['bil', 'studentid', 'studentname', 'studentform', 'studentclass']
@@ -643,11 +658,25 @@ def import_students_csv(
         
         # Check if any rows were processed
         total_processed = created_count + updated_count + skipped_count
+        logger.info(f"Import summary: {created_count} created, {updated_count} updated, {skipped_count} skipped, {len(errors)} errors")
+        
         if total_processed == 0:
-            logger.warning("No rows were processed from CSV file")
+            error_msg = "No rows were processed from CSV file. Please check the format."
+            logger.error(error_msg)
+            if errors:
+                error_msg += f" Errors: {errors[:5]}"
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No valid rows found in CSV file. Please check the format."
+                detail=error_msg
+            )
+        
+        # If all rows were skipped, return error
+        if created_count == 0 and updated_count == 0 and skipped_count > 0:
+            error_msg = f"All {skipped_count} rows were skipped. " + (errors[0] if errors else "Please check the CSV format.")
+            logger.error(error_msg)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=error_msg
             )
         
         # Commit all changes
@@ -664,12 +693,14 @@ def import_students_csv(
             "total_errors": len(errors)
         }
         
-    except HTTPException:
+    except HTTPException as he:
+        logger.error(f"HTTPException during CSV import: {he.detail}")
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"CSV import failed: {e}", exc_info=True)
+        error_detail = f"Failed to import CSV: {str(e)}"
+        logger.error(f"CSV import failed: {error_detail}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to import CSV: {str(e)}"
+            detail=error_detail
         )
