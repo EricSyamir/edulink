@@ -26,6 +26,7 @@ Pillow>=10.4.0  # Updated for Python 3.13 compatibility
 python-dotenv==1.0.0
 pydantic[email]==2.5.3
 pydantic-settings==2.1.0
+deep-translator==1.11.4
 
 # Logging
 loguru==0.7.2

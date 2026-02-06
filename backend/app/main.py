@@ -15,7 +15,14 @@ from typing import Callable
 
 from app.config import settings
 from app.database import init_db
-from app.routes import auth_router, students_router, teachers_router, discipline_router, setup_router
+from app.routes import (
+    auth_router,
+    students_router,
+    teachers_router,
+    discipline_router,
+    setup_router,
+    translation_router,
+)
 
 # Configure loguru for structured logging
 logger.remove()  # Remove default handler
@@ -99,6 +106,7 @@ app.include_router(auth_router)
 app.include_router(students_router)
 app.include_router(teachers_router)
 app.include_router(discipline_router)
+app.include_router(translation_router)
 
 
 @app.get("/")

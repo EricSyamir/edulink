@@ -8,5 +8,13 @@ from app.routes.students import router as students_router
 from app.routes.teachers import router as teachers_router
 from app.routes.discipline import router as discipline_router
 from app.routes.setup import router as setup_router
+from app.routes.translation import router as translation_router
 
-__all__ = ["auth_router", "students_router", "teachers_router", "discipline_router", "setup_router"]
+__all__ = [
+    "auth_router",
+    "students_router",
+    "teachers_router",
+    "discipline_router",
+    "setup_router",
+    "translation_router",
+]
