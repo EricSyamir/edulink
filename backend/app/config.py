@@ -14,11 +14,6 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql+psycopg2://postgres:YOUR_PASSWORD@db.stkxcgpvzjpkblihoshz.supabase.co:5432/postgres"
     
-    # Session Authentication
-    SESSION_SECRET_KEY: str = "your-super-secret-session-key-change-in-production"
-    SESSION_COOKIE_NAME: str = "edulink_session"
-    SESSION_MAX_AGE: int = 86400  # 24 hours in seconds
-    
     # Face Recognition
     FACE_SIMILARITY_THRESHOLD: float = 0.5  # Cosine similarity threshold (0-1)
     FACE_MODEL_NAME: str = "buffalo_sc"  # Smaller model, uses less memory than buffalo_l

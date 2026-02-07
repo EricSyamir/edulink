@@ -198,7 +198,7 @@ export default function AddStudentPage() {
                 type="text"
                 value={formData.class_name}
                 onChange={handleChange}
-                placeholder="e.g., 1 Amanah"
+                placeholder="T1 AMANAH"
                 className={clsx('input pl-12', errors.class_name && 'border-red-500 focus:ring-red-500')}
               />
             </div>

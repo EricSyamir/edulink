@@ -6,12 +6,8 @@ Face detection and discipline tracking system for schools.
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
-from starlette.responses import Response
 from loguru import logger
 import sys
-from typing import Callable
 
 from app.config import settings
 from app.database import init_db
@@ -23,6 +19,7 @@ from app.routes import (
     setup_router,
     translation_router,
 )
+from app.services.face_recognition import get_face_analyzer
 
 # Configure loguru for structured logging
 logger.remove()  # Remove default handler
@@ -58,8 +55,17 @@ async def lifespan(app: FastAPI):
         logger.warning(f"Database initialization failed: {e}")
         logger.warning("App will start anyway. Database will be initialized on first request.")
     
-    # Note: Face recognition model is loaded lazily on first use to save memory during startup
-    # This prevents OOM errors on platforms with limited memory (e.g., Render free tier)
+    # Pre-download face recognition model at startup (InsightFace downloads buffalo_sc if missing)
+    if settings.FACE_RECOGNITION_ENABLED:
+        try:
+            logger.info("Pre-loading face recognition model at startup...")
+            analyzer = get_face_analyzer()
+            if analyzer:
+                logger.info("Face recognition model ready")
+            else:
+                logger.warning("Face recognition model could not be loaded; will retry on first use")
+        except Exception as e:
+            logger.warning(f"Startup face model preload failed: {e}. Will retry on first use.")
     
     yield
     
@@ -78,27 +84,15 @@ app = FastAPI(
     openapi_url="/api/openapi.json"
 )
 
-# Configure CORS - No cookies needed, simplified
+# Configure CORS - Stateless auth (no cookies/sessions)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
-    allow_credentials=False,  # No cookies needed
+    allow_credentials=False,  # No cookies needed for stateless auth
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*"],
 )
-
-# Debug middleware to log cookie headers
-class CookieDebugMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next: Callable):
-        response = await call_next(request)
-        # Log Set-Cookie headers for debugging (especially for login endpoint)
-        set_cookie_headers = response.headers.getlist("set-cookie")
-        if set_cookie_headers and "/api/auth/login" in str(request.url):
-            logger.info(f"🔐 Login response Set-Cookie headers: {set_cookie_headers}")
-        return response
-
-app.add_middleware(CookieDebugMiddleware)
 
 # Include routers
 app.include_router(setup_router)  # Setup routes (no auth required)

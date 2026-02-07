@@ -3,6 +3,7 @@ Database Configuration Module
 Sets up SQLAlchemy engine, session, and base model.
 """
 
+from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
@@ -11,12 +12,34 @@ from loguru import logger
 
 from app.config import settings
 
+
+def _ensure_postgres_ssl(url: str) -> str:
+    """Ensure PostgreSQL URL has sslmode=require for cloud databases (Fly, Supabase)."""
+    if "postgresql" not in url:
+        return url
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+    if "sslmode" not in query:
+        query["sslmode"] = ["require"]
+        new_query = urlencode(query, doseq=True)
+        return urlunparse(parsed._replace(query=new_query))
+    return url
+
+
 # Create SQLAlchemy engine with connection pooling
+# - sslmode=require: Fly Postgres/Supabase require SSL
+# - pool_pre_ping: detect stale connections before use
+# - pool_recycle=300: recycle connections every 5 min (Fly drops idle conns)
+# - pool_size=5, max_overflow=5: ~10 connections per machine (4 machines = 40 max, under Supabase 200)
+# - connect_args keepalives: prevent idle connection drops
 engine = create_engine(
-    settings.DATABASE_URL,
-    pool_pre_ping=True,  # Enable connection health checks
-    pool_recycle=3600,   # Recycle connections after 1 hour
-    echo=settings.DEBUG  # Log SQL queries in debug mode
+    _ensure_postgres_ssl(settings.DATABASE_URL),
+    pool_pre_ping=True,
+    pool_recycle=300,
+    pool_size=5,
+    max_overflow=5,
+    connect_args={"keepalives": 1, "keepalives_idle": 30, "keepalives_interval": 10, "keepalives_count": 5},
+    echo=settings.DEBUG
 )
 
 # Session factory for creating database sessions
