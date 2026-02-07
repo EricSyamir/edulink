@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Building2, Mail, Lock, Eye, EyeOff, Loader2, HelpCircle } from 'lucide-react'
+import { SERVER_WAKE_TIME } from '../config'
 
 // Logo display component with fallback
 function LogoDisplay() {
@@ -172,8 +173,9 @@ export default function LoginPage() {
       </div>
       
       {/* Footer */}
-      <footer className="relative z-10 text-center py-4 text-primary-300 text-sm">
-        © 2024 EduLink BErCHAMPION. All rights reserved.
+      <footer className="relative z-10 text-center py-4 text-primary-300 text-sm space-y-1">
+        <p>© 2024 EduLink BErCHAMPION. All rights reserved.</p>
+        <p className="text-primary-400/80 text-xs">Server wakes daily at {SERVER_WAKE_TIME} Malaysia time</p>
       </footer>
     </div>
   )

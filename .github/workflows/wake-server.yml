@@ -1,0 +1,19 @@
+# Wake EduLink API server at 7 AM Malaysia time (UTC+8)
+# Fly.io machines scale to zero when idle - this ping wakes them up before school hours
+name: Wake Server
+
+on:
+  schedule:
+    # 7:00 AM Malaysia (UTC+8) = 23:00 UTC previous day
+    - cron: '0 23 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  wake:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping API to wake server
+        run: |
+          echo "Waking EduLink API at $(date -u)..."
+          curl -sf --max-time 120 "https://edulink-api.fly.dev/" || echo "Request completed (server may be cold starting)"
+          echo "Done."
