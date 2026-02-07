@@ -3,6 +3,7 @@ EduLink BErCHAMPION API - Main Application
 Face detection and discipline tracking system for schools.
 """
 
+import threading
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,6 +19,7 @@ from app.routes import (
     discipline_router,
     setup_router,
     translation_router,
+    load_test_router,
 )
 from app.services.face_recognition import get_face_analyzer
 
@@ -28,12 +30,12 @@ logger.add(
     format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
     level="DEBUG" if settings.DEBUG else "INFO"
 )
-logger.add(
-    "logs/edulink_{time:YYYY-MM-DD}.log",
-    rotation="1 day",
-    retention="30 days",
-    level="INFO"
-)
+try:
+    import os
+    os.makedirs("logs", exist_ok=True)
+    logger.add("logs/edulink_{time:YYYY-MM-DD}.log", rotation="1 day", retention="30 days", level="INFO")
+except Exception:
+    pass  # File logging optional; stdout still works
 
 
 @asynccontextmanager
@@ -54,19 +56,19 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Database initialization failed: {e}")
         logger.warning("App will start anyway. Database will be initialized on first request.")
-    
-    # Pre-download face recognition model at startup (InsightFace downloads buffalo_sc if missing)
-    if settings.FACE_RECOGNITION_ENABLED:
-        try:
-            logger.info("Pre-loading face recognition model at startup...")
-            analyzer = get_face_analyzer()
-            if analyzer:
-                logger.info("Face recognition model ready")
-            else:
-                logger.warning("Face recognition model could not be loaded; will retry on first use")
-        except Exception as e:
-            logger.warning(f"Startup face model preload failed: {e}. Will retry on first use.")
-    
+
+    # Preload face model in background so app can start listening immediately (Fly health check)
+    def _preload_face_model():
+        if settings.FACE_RECOGNITION_ENABLED:
+            try:
+                logger.info("Pre-loading face recognition model in background...")
+                analyzer = get_face_analyzer()
+                logger.info("Face recognition model ready" if analyzer else "Face model load deferred")
+            except Exception as e:
+                logger.warning(f"Face model preload failed: {e}. Will retry on first use.")
+
+    threading.Thread(target=_preload_face_model, daemon=True).start()
+
     yield
     
     # Shutdown
@@ -101,6 +103,7 @@ app.include_router(students_router)
 app.include_router(teachers_router)
 app.include_router(discipline_router)
 app.include_router(translation_router)
+app.include_router(load_test_router)
 
 
 @app.get("/")

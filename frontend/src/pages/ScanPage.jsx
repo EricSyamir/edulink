@@ -16,6 +16,7 @@ import {
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
 import MisconductBadge from '../components/MisconductBadge'
+import { resizeImageForFaceDetection } from '../utils/imageResize'
 
 export default function ScanPage() {
   const navigate = useNavigate()
@@ -88,19 +89,23 @@ export default function ScanPage() {
     setMisconductType('')
   }, [severity])
   
-  // Capture image from webcam
-  const captureImage = useCallback(() => {
+  // Capture image from webcam (resized for faster upload & face detection)
+  const captureImage = useCallback(async () => {
     const imageSrc = webcamRef.current?.getScreenshot()
     if (imageSrc) {
-      setCapturedImage(imageSrc)
       setIdentifiedStudent(null)
       setMatchConfidence(null)
       setSeverity('')
       setMisconductType('')
       setNotes('')
-      
-      // Automatically identify
-      identifyMutation.mutate(imageSrc)
+      try {
+        const resized = await resizeImageForFaceDetection(imageSrc, 640, 0.7)
+        setCapturedImage(resized)
+        identifyMutation.mutate(resized)
+      } catch {
+        setCapturedImage(imageSrc)
+        identifyMutation.mutate(imageSrc)
+      }
     }
   }, [identifyMutation])
   
@@ -157,11 +162,11 @@ export default function ScanPage() {
                 ref={webcamRef}
                 audio={false}
                 screenshotFormat="image/jpeg"
-                screenshotQuality={0.8}
+                screenshotQuality={0.7}
                 videoConstraints={{
                   facingMode,
-                  width: { ideal: 1280 },
-                  height: { ideal: 960 },
+                  width: { ideal: 640 },
+                  height: { ideal: 640 },
                 }}
                 className="w-full h-full object-cover"
               />

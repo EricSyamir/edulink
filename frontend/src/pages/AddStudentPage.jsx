@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
+import { resizeImageForFaceDetection } from '../utils/imageResize'
 
 export default function AddStudentPage() {
   const navigate = useNavigate()
@@ -85,12 +86,18 @@ export default function AddStudentPage() {
     return Object.keys(newErrors).length === 0
   }
   
-  // Capture photo
-  const capturePhoto = useCallback(() => {
+  // Capture photo (resized for faster upload & face detection)
+  const capturePhoto = useCallback(async () => {
     const imageSrc = webcamRef.current?.getScreenshot()
     if (imageSrc) {
-      setCapturedImage(imageSrc)
-      setShowCamera(false)
+      try {
+        const resized = await resizeImageForFaceDetection(imageSrc, 640, 0.7)
+        setCapturedImage(resized)
+        setShowCamera(false)
+      } catch {
+        setCapturedImage(imageSrc)
+        setShowCamera(false)
+      }
     }
   }, [])
   
@@ -255,11 +262,11 @@ export default function AddStudentPage() {
                   ref={webcamRef}
                   audio={false}
                   screenshotFormat="image/jpeg"
-                  screenshotQuality={0.8}
+                  screenshotQuality={0.7}
                   videoConstraints={{
                     facingMode,
-                    width: { ideal: 1280 },
-                    height: { ideal: 960 },
+                    width: { ideal: 640 },
+                    height: { ideal: 640 },
                   }}
                   className="w-full h-full object-cover"
                 />
