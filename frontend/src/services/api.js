@@ -107,6 +107,17 @@ export const studentApi = {
    * Create a new student
    */
   create: async (data) => {
+    if (data.face_image) {
+      const t0 = performance.now()
+      console.log('[FACE] Creating student with face_image', {
+        endpoint: 'POST /api/students',
+        faceBase64Len: data.face_image?.length ?? 0,
+        timestamp: new Date().toISOString(),
+      })
+      const response = await api.post('/api/students', data)
+      console.log('[FACE] Create response', { durationMs: Math.round(performance.now() - t0), status: response.status })
+      return response.data
+    }
     const response = await api.post('/api/students', data)
     return response.data
   },
@@ -115,6 +126,17 @@ export const studentApi = {
    * Update an existing student
    */
   update: async (id, data) => {
+    if (data.face_image) {
+      const t0 = performance.now()
+      console.log('[FACE] Updating student with face_image', {
+        endpoint: `PUT /api/students/${id}`,
+        faceBase64Len: data.face_image?.length ?? 0,
+        timestamp: new Date().toISOString(),
+      })
+      const response = await api.put(`/api/students/${id}`, data)
+      console.log('[FACE] Update response', { durationMs: Math.round(performance.now() - t0), status: response.status })
+      return response.data
+    }
     const response = await api.put(`/api/students/${id}`, data)
     return response.data
   },
@@ -130,7 +152,18 @@ export const studentApi = {
    * Identify a student by face image
    */
   identify: async (faceImage) => {
+    const t0 = performance.now()
+    console.log('[FACE] Identifying student', {
+      endpoint: 'POST /api/students/identify',
+      faceBase64Len: faceImage?.length ?? 0,
+      timestamp: new Date().toISOString(),
+    })
     const response = await api.post('/api/students/identify', { face_image: faceImage })
+    console.log('[FACE] Identify response', {
+      durationMs: Math.round(performance.now() - t0),
+      status: response.status,
+      matched: response.data?.matched,
+    })
     return response.data
   },
   

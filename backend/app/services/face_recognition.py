@@ -46,12 +46,12 @@ def get_face_analyzer():
             
             logger.info(f"Initializing InsightFace with model: {settings.FACE_MODEL_NAME}")
             
-            # Let InsightFace handle download/extraction - don't pre-validate
-            # InsightFace will check if model exists and download if needed
-            # The root parameter ensures it uses the correct location
+            # Use /app/.insightface - model is pre-downloaded in Docker image (no runtime download)
+            import os as _os
+            _root = "/app/.insightface" if _os.path.exists("/app/.insightface") else "/root/.insightface"
             _face_analyzer = FaceAnalysis(
                 name=settings.FACE_MODEL_NAME,
-                root="/root/.insightface",
+                root=_root,
                 providers=['CPUExecutionProvider']  # Use CPU, add CUDAExecutionProvider for GPU
             )
             
@@ -60,7 +60,7 @@ def get_face_analyzer():
             _face_analyzer.prepare(ctx_id=0, det_size=(640, 640))
             
             # Verify model was loaded successfully by checking if files exist
-            model_path = f"/root/.insightface/models/{settings.FACE_MODEL_NAME}"
+            model_path = f"{_root}/models/{settings.FACE_MODEL_NAME}"
             if os.path.exists(model_path):
                 required_files = ['w600k_r50.onnx', 'det_10g.onnx', '1k3d68.onnx', '2d106det.onnx', 'genderage.onnx']
                 missing_files = [f for f in required_files if not os.path.exists(os.path.join(model_path, f))]

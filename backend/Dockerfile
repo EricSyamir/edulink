@@ -13,9 +13,12 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Note: Model will be downloaded on first use at runtime
-# Pre-downloading during build is unreliable due to network issues
-# The model will be cached after first download
+# Pre-download face model during build (avoids download on every cold start)
+RUN python -c "\
+from insightface.app import FaceAnalysis; \
+fa = FaceAnalysis(name='buffalo_sc', root='/app/.insightface', providers=['CPUExecutionProvider']); \
+fa.prepare(ctx_id=0, det_size=(640, 640)) \
+"
 
 # Copy application code
 COPY . .
