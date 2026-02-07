@@ -14,6 +14,7 @@ import AdminPage from './pages/AdminPage'
 import AdminTeachersPage from './pages/AdminTeachersPage'
 import ProfilePage from './pages/ProfilePage'
 import FindEmailPage from './pages/FindEmailPage'
+import TranslationPage from './pages/TranslationPage'
 import ConfigError from './components/ConfigError'
 
 /**
@@ -77,6 +78,10 @@ function AppRoutes() {
             <FindEmailPage />
           </PublicRoute>
         }
+      />
+      <Route
+        path="/translation"
+        element={<TranslationPage />}
       />
       
       {/* Protected routes with layout */}
