@@ -209,7 +209,7 @@ export default function FindEmailPage() {
       
       {/* Footer */}
       <footer className="relative z-10 text-center py-4 text-primary-300 text-sm">
-        © 2024 EduLink BErCHAMPION. All rights reserved.
+        © 2026 EduLink BErCHAMPION. All rights reserved.
       </footer>
     </div>
   )

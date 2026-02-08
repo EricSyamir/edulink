@@ -174,7 +174,7 @@ export default function LoginPage() {
       
       {/* Footer */}
       <footer className="relative z-10 text-center py-4 text-primary-300 text-sm space-y-1">
-        <p>© 2024 EduLink BErCHAMPION. All rights reserved.</p>
+        <p>© 2026 EduLink BErCHAMPION. All rights reserved.</p>
         <p className="text-primary-400/80 text-xs">Server wakes daily at {SERVER_WAKE_TIME} Malaysia time</p>
       </footer>
     </div>
