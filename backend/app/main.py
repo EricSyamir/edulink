@@ -21,7 +21,7 @@ from app.routes import (
     translation_router,
     load_test_router,
 )
-from app.services.face_recognition import get_face_analyzer
+from app.services.face_recognition import get_face_analyzer, get_face_model_status
 
 # Configure loguru for structured logging
 logger.remove()  # Remove default handler
@@ -119,11 +119,17 @@ def root():
 
 @app.get("/api/health")
 def health_check():
-    """Health check endpoint for monitoring."""
+    """Health check endpoint for monitoring. Includes face model readiness for cold-start feedback."""
+    face_status = get_face_model_status()
     return {
         "status": "healthy",
         "database": "connected",
-        "face_recognition": "available"
+        "face_model": face_status,
+        "face_recognition": "available" if face_status == "ready" else ("loading" if face_status == "loading" else "unavailable"),
+        "message": (
+            "Face recognition model is loading. This may take up to a minute on first start."
+            if face_status == "loading" else None
+        )
     }
 
 

@@ -74,6 +74,16 @@ api.interceptors.response.use(
 export default api
 
 // ============================================
+// Health / Readiness (for warming-up feedback)
+// ============================================
+export const healthApi = {
+  get: async () => {
+    const response = await api.get('/api/health', { timeout: 8000 })
+    return response.data
+  },
+}
+
+// ============================================
 // Student API functions
 // ============================================
 

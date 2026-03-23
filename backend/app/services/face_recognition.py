@@ -23,6 +23,12 @@ except ImportError:
 
 # Lazy load InsightFace to avoid import errors during testing
 _face_analyzer = None
+_face_model_status = "idle"  # idle | loading | ready | disabled | error
+
+
+def get_face_model_status() -> str:
+    """Return current face model status for health/readiness checks."""
+    return _face_model_status
 
 
 def get_face_analyzer():
@@ -31,14 +37,16 @@ def get_face_analyzer():
     Uses lazy loading for efficiency.
     Returns None if face recognition is disabled or unavailable.
     """
-    global _face_analyzer
-    
+    global _face_analyzer, _face_model_status
+
     # Check if face recognition is enabled
     if not getattr(settings, 'FACE_RECOGNITION_ENABLED', True):
         logger.info("Face recognition is disabled via FACE_RECOGNITION_ENABLED=False")
+        _face_model_status = "disabled"
         return None
-    
+
     if _face_analyzer is None:
+        _face_model_status = "loading"
         try:
             from insightface.app import FaceAnalysis
             import os
@@ -72,16 +80,19 @@ def get_face_analyzer():
                 logger.warning(f"Model initialized but directory not found at {model_path}")
             
             logger.info("InsightFace ready for face recognition")
-            
+            _face_model_status = "ready"
+
         except ImportError as e:
             logger.warning(f"InsightFace not available: {e}")
             logger.warning("Face recognition will be disabled. Install insightface to enable.")
+            _face_model_status = "disabled"
             return None
         except Exception as e:
             logger.error(f"Failed to initialize InsightFace: {e}")
             logger.warning("Face recognition will be disabled due to initialization error.")
+            _face_model_status = "error"
             return None
-    
+
     return _face_analyzer
 
 

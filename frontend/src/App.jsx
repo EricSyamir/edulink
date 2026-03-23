@@ -16,6 +16,7 @@ import ProfilePage from './pages/ProfilePage'
 import FindEmailPage from './pages/FindEmailPage'
 import TranslationPage from './pages/TranslationPage'
 import ConfigError from './components/ConfigError'
+import WarmingUpOverlay from './components/WarmingUpOverlay'
 
 /**
  * Protected route wrapper - redirects to login if not authenticated
@@ -129,6 +130,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <WarmingUpOverlay />
         <AppRoutes />
       </AuthProvider>
     </BrowserRouter>
