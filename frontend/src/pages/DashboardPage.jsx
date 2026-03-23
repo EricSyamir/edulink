@@ -95,8 +95,8 @@ export default function DashboardPage() {
         <StatCard
           icon={Camera}
           label="Face Registered"
-          value={students.filter(s => s.has_face_embedding).length}
-          subtext={`${Math.round((students.filter(s => s.has_face_embedding).length / Math.max(students.length, 1)) * 100)}%`}
+          value={analytics?.total_students_with_face ?? 0}
+          subtext={`${Math.round(((analytics?.total_students_with_face ?? 0) / Math.max(analytics?.total_students ?? 1, 1)) * 100)}% of students`}
           color="emerald"
         />
       </div>

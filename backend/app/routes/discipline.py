@@ -230,6 +230,9 @@ def get_analytics(
     # Get total students
     total_students = db.query(Student).count()
     
+    # Get total students with face registered
+    total_students_with_face = db.query(Student).filter(Student.face_embedding.isnot(None)).count()
+    
     # Get total misconducts
     from sqlalchemy import func
     
@@ -266,6 +269,7 @@ def get_analytics(
     
     return DashboardAnalytics(
         total_students=total_students,
+        total_students_with_face=total_students_with_face,
         total_light_misconducts=total_light,
         total_medium_misconducts=total_medium,
         monthly_light_misconducts=monthly_light,

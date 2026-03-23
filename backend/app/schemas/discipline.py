@@ -144,6 +144,7 @@ class AnalyticsTrend(BaseModel):
 class DashboardAnalytics(BaseModel):
     """Schema for dashboard analytics."""
     total_students: int
+    total_students_with_face: int = Field(default=0, description="Number of students with face embeddings registered")
     total_light_misconducts: int
     total_medium_misconducts: int
     monthly_light_misconducts: int
