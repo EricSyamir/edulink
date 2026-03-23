@@ -16,10 +16,14 @@ class StudentBase(BaseModel):
     form: int = Field(..., ge=1, le=5, description="Form level (1-5)")
 
 
-class StudentCreate(StudentBase):
-    """Schema for creating a new student."""
+class StudentCreate(BaseModel):
+    """Schema for creating a new student. student_id is auto-generated if not provided."""
+    student_id: Optional[str] = Field(None, min_length=1, max_length=50, description="Unique school ID (auto-generated if omitted)")
+    name: str = Field(..., min_length=1, max_length=255, description="Student's full name")
+    class_name: str = Field(..., min_length=1, max_length=100, description="Class name (e.g., '1 Amanah')")
+    form: int = Field(..., ge=1, le=5, description="Form level (1-5)")
     face_image: Optional[str] = Field(None, description="Base64 encoded face image")
-    
+
     @field_validator("face_image")
     @classmethod
     def validate_face_image(cls, v):

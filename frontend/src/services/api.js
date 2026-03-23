@@ -228,6 +228,14 @@ export const disciplineApi = {
   },
   
   /**
+   * Update an existing discipline record
+   */
+  update: async (id, data) => {
+    const response = await api.put(`/api/discipline-records/${id}`, data)
+    return response.data
+  },
+
+  /**
    * Delete a discipline record
    */
   delete: async (id) => {

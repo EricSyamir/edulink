@@ -10,7 +10,6 @@ import {
   Save, 
   Loader2,
   User,
-  Hash,
   School,
   GraduationCap,
   CheckCircle2,
@@ -25,9 +24,8 @@ export default function AddStudentPage() {
   const queryClient = useQueryClient()
   const webcamRef = useRef(null)
   
-  // Form state
+  // Form state — student_id is omitted; backend auto-generates it
   const [formData, setFormData] = useState({
-    student_id: '',
     name: '',
     class_name: '',
     form: '',
@@ -69,9 +67,6 @@ export default function AddStudentPage() {
   const validateForm = () => {
     const newErrors = {}
     
-    if (!formData.student_id.trim()) {
-      newErrors.student_id = 'Student ID is required'
-    }
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required'
     }
@@ -147,29 +142,7 @@ export default function AddStudentPage() {
         {/* Basic Info Card */}
         <div className="card p-6 space-y-5">
           <h2 className="font-semibold text-lg text-surface-900">Basic Information</h2>
-          
-          {/* Student ID */}
-          <div>
-            <label htmlFor="student_id" className="block text-sm font-medium text-surface-700 mb-2">
-              Student ID *
-            </label>
-            <div className="relative">
-              <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
-              <input
-                id="student_id"
-                name="student_id"
-                type="text"
-                value={formData.student_id}
-                onChange={handleChange}
-                placeholder="e.g., 2024001"
-                className={clsx('input pl-12', errors.student_id && 'border-red-500 focus:ring-red-500')}
-              />
-            </div>
-            {errors.student_id && (
-              <p className="text-red-500 text-sm mt-1">{errors.student_id}</p>
-            )}
-          </div>
-          
+
           {/* Name */}
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-surface-700 mb-2">

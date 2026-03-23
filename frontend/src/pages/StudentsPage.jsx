@@ -227,7 +227,7 @@ export default function StudentsPage() {
                         </div>
                         <div>
                           <p className="font-medium text-surface-900">{student.name}</p>
-                          <p className="text-sm text-surface-500">{student.student_id}</p>
+                          <p className="text-sm text-surface-500">{student.class_name} • Form {student.form}</p>
                         </div>
                       </div>
                     </td>

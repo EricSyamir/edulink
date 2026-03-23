@@ -220,28 +220,32 @@ class DisciplineService:
         }
     
     @staticmethod
-    def get_class_statistics(db: Session, class_name: str) -> Dict:
+    def get_class_statistics(db: Session, class_name: str, form: Optional[int] = None) -> Dict:
         """
         Get misconduct statistics for a specific class.
-        
+
         Args:
             db: Database session
             class_name: Class name
-        
+            form: Optional form number to disambiguate same-named classes across forms
+
         Returns:
             Dictionary with class statistics including misconduct type breakdowns
         """
         now = datetime.utcnow()
         month_start = datetime(now.year, now.month, 1)
-        
-        # Get students in this class
-        students = db.query(Student).filter(Student.class_name == class_name).all()
+
+        # Get students in this class (optionally filtered by form to avoid cross-form merging)
+        query = db.query(Student).filter(Student.class_name == class_name)
+        if form is not None:
+            query = query.filter(Student.form == form)
+        students = query.all()
         student_ids = [s.id for s in students]
         
         if not student_ids:
             return {
                 "class_name": class_name,
-                "form": 0,
+                "form": form or 0,
                 "total_students": 0,
                 "light_misconducts": 0,
                 "medium_misconducts": 0,
@@ -249,9 +253,9 @@ class DisciplineService:
                 "medium_monthly": 0,
                 "misconduct_type_breakdown": {}
             }
-        
-        # Get form from first student
-        form = students[0].form if students else 0
+
+        # Get form from first student (or from the passed form argument)
+        resolved_form = form if form is not None else (students[0].form if students else 0)
         
         # Total counts - cast enum column to string for comparison
         light_total = db.query(func.count(DisciplineRecord.id)).filter(
@@ -305,7 +309,7 @@ class DisciplineService:
         
         return {
             "class_name": class_name,
-            "form": form,
+            "form": resolved_form,
             "total_students": len(students),
             "light_misconducts": light_total,
             "medium_misconducts": medium_total,

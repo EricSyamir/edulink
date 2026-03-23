@@ -14,6 +14,7 @@ from app.database import get_db
 from app.models import Student, Teacher, DisciplineRecord
 from app.schemas.discipline import (
     DisciplineRecordCreate,
+    DisciplineRecordUpdate,
     DisciplineRecordResponse,
     DisciplineRecordWithDetails,
     MisconductTypeList,
@@ -181,19 +182,26 @@ def get_all_classes_statistics(
 ):
     """
     Get misconduct statistics for all classes.
+    Classes are uniquely identified by (class_name, form) pair to prevent
+    duplicate class names from different forms merging together.
     """
-    # Get unique classes
-    query = db.query(Student.class_name).distinct()
+    from sqlalchemy import func as sqlfunc
+    query = db.query(Student.class_name, Student.form).distinct()
     if form:
         query = query.filter(Student.form == form)
-    
-    classes = query.order_by(Student.class_name).all()
-    
+
+    classes = query.order_by(Student.form, Student.class_name).all()
+
     stats = []
-    for (class_name,) in classes:
-        class_stats = discipline_service.get_class_statistics(db, class_name)
+    seen = set()
+    for (class_name, class_form) in classes:
+        key = (class_name, class_form)
+        if key in seen:
+            continue
+        seen.add(key)
+        class_stats = discipline_service.get_class_statistics(db, class_name, class_form)
         stats.append(ClassStatistics(**class_stats))
-    
+
     return stats
 
 
@@ -343,6 +351,61 @@ def create_discipline_record(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e)
         )
+
+
+@router.put("/{record_id}", response_model=DisciplineRecordWithDetails)
+def update_discipline_record(
+    record_id: int,
+    record_data: DisciplineRecordUpdate,
+    db: Session = Depends(get_db),
+    teacher: Teacher = Depends(get_current_teacher)
+):
+    """
+    Update an existing discipline record (misconduct).
+    Only the teacher who created the record (or any teacher) can update it.
+    """
+    record = db.query(DisciplineRecord).filter(DisciplineRecord.id == record_id).first()
+
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Discipline record with id {record_id} not found"
+        )
+
+    if record_data.severity is not None:
+        valid_types = LIGHT_MISCONDUCT_TYPES if record_data.severity == "light" else MEDIUM_MISCONDUCT_TYPES
+        mc_type = record_data.misconduct_type if record_data.misconduct_type is not None else record.misconduct_type
+        if mc_type not in valid_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid misconduct type for {record_data.severity} severity."
+            )
+        record.severity = record_data.severity
+
+    if record_data.misconduct_type is not None:
+        severity = record_data.severity if record_data.severity is not None else (
+            record.severity.value if hasattr(record.severity, 'value') else record.severity
+        )
+        valid_types = LIGHT_MISCONDUCT_TYPES if severity == "light" else MEDIUM_MISCONDUCT_TYPES
+        if record_data.misconduct_type not in valid_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid misconduct type for {severity} severity."
+            )
+        record.misconduct_type = record_data.misconduct_type
+
+    if record_data.notes is not None:
+        record.notes = record_data.notes
+
+    db.commit()
+    db.refresh(record)
+
+    logger.info(
+        f"Discipline record updated by {teacher.name}: "
+        f"id={record_id}, severity={record.severity}, type={record.misconduct_type}"
+    )
+
+    return record_to_detailed_response(record)
 
 
 @router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT)

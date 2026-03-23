@@ -10,6 +10,8 @@ from sqlalchemy import or_
 from loguru import logger
 import csv
 import io
+import random
+import string
 
 from app.database import get_db
 from app.models import Student, Teacher
@@ -164,13 +166,21 @@ def create_student(
     - **form**: Form level (1-5)
     - **face_image**: Optional base64 encoded face image
     """
-    # Check for duplicate student_id
-    existing = db.query(Student).filter(Student.student_id == student_data.student_id).first()
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Student with ID {student_data.student_id} already exists"
-        )
+    # Auto-generate student_id if not provided
+    if not student_data.student_id:
+        while True:
+            generated_id = ''.join(random.choices(string.digits, k=7))
+            if not db.query(Student).filter(Student.student_id == generated_id).first():
+                student_data.student_id = generated_id
+                break
+    else:
+        # Check for duplicate student_id
+        existing = db.query(Student).filter(Student.student_id == student_data.student_id).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Student with ID {student_data.student_id} already exists"
+            )
     
     # Process face image if provided
     face_embedding_json = None

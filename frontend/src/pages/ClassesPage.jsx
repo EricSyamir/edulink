@@ -223,7 +223,6 @@ export default function ClassesPage() {
                             </div>
                             <div>
                               <p className="font-medium text-surface-900">{student.name}</p>
-                              <p className="text-sm text-surface-500">{student.student_id}</p>
                             </div>
                           </div>
                         </td>

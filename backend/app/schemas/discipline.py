@@ -65,6 +65,13 @@ class DisciplineRecordCreate(BaseModel):
     notes: Optional[str] = Field(None, max_length=1000, description="Optional notes about the incident")
 
 
+class DisciplineRecordUpdate(BaseModel):
+    """Schema for updating an existing discipline record."""
+    severity: Optional[Literal["light", "medium"]] = Field(None, description="Misconduct severity")
+    misconduct_type: Optional[str] = Field(None, max_length=100, description="Type of misconduct")
+    notes: Optional[str] = Field(None, max_length=1000, description="Optional notes about the incident")
+
+
 class DisciplineRecordResponse(BaseModel):
     """Schema for discipline record response."""
     id: int
